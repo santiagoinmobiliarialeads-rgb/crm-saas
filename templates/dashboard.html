@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – InmoCRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Dashboard</h2>
+  <span style="font-size:13px;color:var(--muted);">{{ hoy.strftime('%A %d de %B') }}</span>
+</div>
+
+<!-- Métricas -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="label">Total leads</div>
+    <div class="value">{{ total_leads }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">🔥 Calientes</div>
+    <div class="value" style="color:var(--red)">{{ leads_calientes }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Tareas pendientes</div>
+    <div class="value" style="color:var(--amber)">{{ tareas_pendientes }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Cerrados</div>
+    <div class="value" style="color:var(--accent)">{{ leads_cerrados }}</div>
+  </div>
+</div>
+
+<!-- VISITAS AGENDADAS (recordatorios) -->
+{% if visitas_agendadas %}
+<div class="section-title"><span class="dot" style="background:#7F77DD"></span> Visitas agendadas</div>
+
+{% for visita in visitas_agendadas %}
+<div class="card" style="margin-bottom:12px; border-left: 3px solid
+  {% if visita.urgencia == 'hoy' %}var(--red)
+  {% elif visita.urgencia == 'vencida' %}var(--amber)
+  {% else %}#7F77DD{% endif %};">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <strong style="font-size:15px;">{{ visita.lead.nombre }}</strong>
+        {% if visita.urgencia == 'hoy' %}
+          <span class="badge badge-caliente">HOY</span>
+        {% elif visita.urgencia == 'vencida' %}
+          <span class="badge" style="background:var(--amber-lt);color:var(--amber);">SIN CONFIRMAR</span>
+        {% else %}
+          <span class="badge badge-muted">PRÓXIMA</span>
+        {% endif %}
+      </div>
+      <div style="margin-top:5px;font-size:13px;color:var(--muted);">
+        🏠 {{ visita.propiedad }}
+      </div>
+      <div style="margin-top:3px;font-size:13px;font-weight:500;
+        color:{% if visita.urgencia == 'hoy' %}var(--red){% elif visita.urgencia == 'vencida' %}var(--amber){% else %}var(--accent){% endif %}">
+        📅 {{ visita.estado_label }}
+      </div>
+      {% if visita.notas %}
+      <div style="margin-top:5px;font-size:12px;color:var(--muted);">📝 {{ visita.notas }}</div>
+      {% endif %}
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;">
+      <!-- Confirmar visita realizada -->
+      <button onclick="toggleConfirmar({{ visita.id }})" class="btn btn-primary btn-sm">✔ Confirmar visita</button>
+
+      <!-- Reagendar -->
+      <button onclick="toggleReagendar({{ visita.id }})" class="btn btn-ghost btn-sm">📅 Reagendar</button>
+
+      <!-- Cancelar -->
+      <form action="/visitas/{{ visita.id }}/confirmar" method="POST"
+            onsubmit="return confirm('¿Cancelar esta visita?')">
+        <input type="hidden" name="accion" value="cancelar">
+        <button type="submit" class="btn btn-danger btn-sm" style="width:100%;">✕ Cancelar</button>
+      </form>
+
+      <a href="{{ url_for('ver_lead', id=visita.lead_id) }}" class="btn btn-ghost btn-sm">Ver lead</a>
+    </div>
+  </div>
+
+  <!-- Panel confirmar -->
+  <div id="confirmar-{{ visita.id }}" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <form action="/visitas/{{ visita.id }}/confirmar" method="POST">
+      <input type="hidden" name="accion" value="realizada">
+      <div class="form-group">
+        <label>¿Cómo resultó la visita? (opcional)</label>
+        <textarea name="resultado" class="form-control" rows="2"
+          placeholder="Ej: Muy interesado, pide una semana para pensarlo..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">✔ Confirmar – generar seguimientos automáticos</button>
+    </form>
+  </div>
+
+  <!-- Panel reagendar -->
+  <div id="reagendar-{{ visita.id }}" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <form action="/visitas/{{ visita.id }}/confirmar" method="POST" style="display:flex;gap:10px;align-items:flex-end;">
+      <input type="hidden" name="accion" value="reagendar">
+      <div class="form-group" style="margin:0;flex:1;">
+        <label>Nueva fecha y hora</label>
+        <input type="datetime-local" name="nueva_fecha_hora" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- VISITAS SIN CONFIRMAR (ya pasaron) -->
+{% if visitas_sin_confirmar %}
+<div class="section-title"><span class="dot" style="background:var(--amber)"></span> Visitas sin confirmar</div>
+{% for visita in visitas_sin_confirmar %}
+<div class="card" style="margin-bottom:12px;border-left:3px solid var(--amber);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <strong>{{ visita.lead.nombre }}</strong>
+        <span class="badge" style="background:var(--amber-lt);color:var(--amber);">SIN CONFIRMAR</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">
+        🏠 {{ visita.propiedad }} · 📅 {{ visita.fecha_hora.strftime('%d/%m/%Y a las %H:%M') }}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="toggleConfirmar({{ visita.id }})" class="btn btn-primary btn-sm">✔ Confirmar</button>
+      <button onclick="toggleReagendar({{ visita.id }})" class="btn btn-ghost btn-sm">📅 Reagendar</button>
+      <form action="/visitas/{{ visita.id }}/confirmar" method="POST" onsubmit="return confirm('¿Cancelar?')">
+        <input type="hidden" name="accion" value="cancelar">
+        <button type="submit" class="btn btn-danger btn-sm">✕</button>
+      </form>
+    </div>
+  </div>
+  <div id="confirmar-{{ visita.id }}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+    <form action="/visitas/{{ visita.id }}/confirmar" method="POST">
+      <input type="hidden" name="accion" value="realizada">
+      <div class="form-group">
+        <label>¿Cómo resultó? (opcional)</label>
+        <textarea name="resultado" class="form-control" rows="2" placeholder="Ej: Muy interesado..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">✔ Confirmar – generar seguimientos</button>
+    </form>
+  </div>
+  <div id="reagendar-{{ visita.id }}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+    <form action="/visitas/{{ visita.id }}/confirmar" method="POST" style="display:flex;gap:10px;align-items:flex-end;">
+      <input type="hidden" name="accion" value="reagendar">
+      <div class="form-group" style="margin:0;flex:1;">
+        <label>Nueva fecha y hora</label>
+        <input type="datetime-local" name="nueva_fecha_hora" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- SEGUIMIENTOS DE HOY -->
+<div class="section-title"><span class="dot dot-red"></span> Seguimientos de hoy</div>
+
+{% if tareas_hoy %}
+  {% for tarea in tareas_hoy %}
+  <div class="tarea-card urgente" id="tarea-{{ tarea.id }}">
+    <div class="tarea-info">
+      <div class="tarea-nombre">{{ tarea.lead.nombre }}</div>
+      <div class="tarea-meta">
+        📱 {{ tarea.lead.telefono }}
+        {% if tarea.visita %}· 🏠 {{ tarea.visita.propiedad }}{% endif %}
+      </div>
+      <div class="tarea-tipo">{{ tarea.tipo_label }}</div>
+
+      <textarea
+        class="form-control msg-box"
+        rows="3"
+        style="margin-top:10px; font-size:13px;"
+        id="msg-{{ tarea.id }}"
+        onblur="guardarMensaje({{ tarea.id }}, this)"
+      >{{ tarea.mensaje_sugerido }}</textarea>
+    </div>
+
+    <div class="tarea-acciones" style="flex-direction:column; gap:8px;">
+      <button onclick="abrirWA('{{ tarea.lead.telefono | replace('+','') | replace(' ','') | replace('-','') }}', {{ tarea.id }})" class="btn btn-wa btn-sm">💬 WhatsApp</button>
+      <button onclick="completarTarea({{ tarea.id }}, this)" class="btn btn-primary btn-sm">✔ Hecho</button>
+      <form action="/tareas/{{ tarea.id }}/reprogramar" method="POST" style="display:flex;gap:4px;">
+        <select name="dias" class="form-control" style="padding:4px 6px;font-size:12px;width:60px;">
+          <option value="1">+1d</option>
+          <option value="2">+2d</option>
+          <option value="3">+3d</option>
+          <option value="7">+7d</option>
+        </select>
+        <button type="submit" class="btn btn-ghost btn-sm">⏰</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty-state">
+    <div class="icon">✅</div>
+    No tenés seguimientos para hoy.
+  </div>
+{% endif %}
+
+<!-- PRÓXIMOS 7 DÍAS -->
+{% if tareas_proximas %}
+<div class="section-title"><span class="dot dot-amber"></span> Próximos 7 días</div>
+{% for tarea in tareas_proximas %}
+<div class="tarea-card">
+  <div class="tarea-info">
+    <div class="tarea-nombre">{{ tarea.lead.nombre }}</div>
+    <div class="tarea-meta">
+      📅 {{ tarea.fecha_programada.strftime('%d/%m') }}
+      {% if tarea.visita %}· 🏠 {{ tarea.visita.propiedad }}{% endif %}
+    </div>
+    <div class="tarea-tipo">{{ tarea.tipo_label }}</div>
+  </div>
+  <div class="tarea-acciones">
+    <a href="{{ url_for('ver_lead', id=tarea.lead_id) }}" class="btn btn-ghost btn-sm">Ver lead</a>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+function toggleConfirmar(id) {
+  const el = document.getElementById('confirmar-' + id);
+  const re = document.getElementById('reagendar-' + id);
+  re.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function toggleReagendar(id) {
+  const el = document.getElementById('reagendar-' + id);
+  const co = document.getElementById('confirmar-' + id);
+  co.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+
+{% endblock %}

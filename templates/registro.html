@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro – InmoCRM</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--bg); padding:20px; }
+    .auth-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:40px; width:100%; max-width:480px; box-shadow:var(--shadow); }
+    .auth-card h1 { font-size:22px; font-weight:600; color:var(--accent); margin-bottom:4px; }
+    .auth-card p  { font-size:13px; color:var(--muted); margin-bottom:28px; }
+    .plan-card { border:2px solid var(--border); border-radius:var(--radius); padding:16px; cursor:pointer; transition:all .15s; margin-bottom:10px; }
+    .plan-card:hover { border-color:var(--accent); }
+    .plan-card input[type=radio] { display:none; }
+    .plan-card.selected { border-color:var(--accent); background:var(--accent-lt); }
+    .plan-nombre { font-weight:600; font-size:15px; }
+    .plan-detalle { font-size:12px; color:var(--muted); margin-top:3px; }
+    .plan-precio { font-size:13px; font-weight:500; color:var(--accent); margin-top:4px; }
+  </style>
+</head>
+<body>
+<div class="auth-card">
+  <h1>🏠 InmoCRM</h1>
+  <p>Creá tu cuenta — 7 días gratis sin tarjeta</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-msg flash-{{ cat }}" style="margin-bottom:16px;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" name="nombre" class="form-control" required placeholder="Tu nombre">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control" required placeholder="tu@email.com">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" name="password" class="form-control" required placeholder="Mínimo 6 caracteres">
+    </div>
+
+    <div class="form-group">
+      <label style="margin-bottom:10px;display:block;">Elegí tu plan</label>
+
+      <label class="plan-card selected" id="card-basico">
+        <input type="radio" name="plan" value="basico" checked onchange="selectPlan('basico')">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="plan-nombre">Básico</div>
+            <div class="plan-detalle">Hasta 30 leads</div>
+          </div>
+          <div class="plan-precio">$10/mes</div>
+        </div>
+      </label>
+
+      <label class="plan-card" id="card-pro">
+        <input type="radio" name="plan" value="pro" onchange="selectPlan('pro')">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="plan-nombre">Pro</div>
+            <div class="plan-detalle">Hasta 70 leads</div>
+          </div>
+          <div class="plan-precio">$30/mes</div>
+        </div>
+      </label>
+
+      <label class="plan-card" id="card-premium">
+        <input type="radio" name="plan" value="premium" onchange="selectPlan('premium')">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="plan-nombre">Premium</div>
+            <div class="plan-detalle">Hasta 150 leads</div>
+          </div>
+          <div class="plan-precio">$40/mes</div>
+        </div>
+      </label>
+    </div>
+
+    <div style="background:var(--accent-lt);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--accent);">
+      ✅ 7 días de prueba gratis. Sin tarjeta de crédito.
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width:100%;">Crear cuenta gratis</button>
+  </form>
+
+  <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
+    ¿Ya tenés cuenta? <a href="{{ url_for('login') }}" style="color:var(--accent);">Iniciá sesión</a>
+  </div>
+</div>
+
+<script>
+function selectPlan(plan) {
+  ['basico','pro','premium'].forEach(p => {
+    document.getElementById('card-' + p).classList.remove('selected');
+  });
+  document.getElementById('card-' + plan).classList.add('selected');
+}
+</script>
+</body>
+</html>

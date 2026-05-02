@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}{{ lead.nombre }} – InmoCRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{{ url_for('leads') }}" style="color:var(--muted);font-size:13px;">← Volver</a>
+    <h2>{{ lead.nombre }}</h2>
+    <span class="badge badge-{{ lead.temperatura }}">{{ lead.temperatura|capitalize }}</span>
+    <span class="badge badge-muted">{{ lead.estado|capitalize }}</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="https://wa.me/{{ lead.telefono | replace('+','') | replace(' ','') | replace('-','') }}" target="_blank" class="btn btn-wa">💬 WhatsApp</a>
+    <a href="{{ url_for('nueva_visita', lead_id=lead.id) }}" class="btn btn-primary">+ Agendar visita</a>
+    <a href="{{ url_for('editar_lead', id=lead.id) }}" class="btn btn-ghost">Editar</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <!-- Info -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">Información</div>
+    <table style="font-size:14px;width:100%;">
+      <tr><td style="color:var(--muted);padding:6px 0;width:130px;">Teléfono</td><td style="font-family:'DM Mono',monospace;">{{ lead.telefono }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Estado</td><td>{{ lead.estado|capitalize }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Temperatura</td><td><span class="badge badge-{{ lead.temperatura }}">{{ lead.temperatura|capitalize }}</span></td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Último contacto</td><td>{{ lead.ultimo_contacto.strftime('%d/%m/%Y %H:%M') if lead.ultimo_contacto else '–' }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Creado</td><td>{{ lead.creado_en.strftime('%d/%m/%Y') }}</td></tr>
+    </table>
+    {% if lead.notas %}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Notas</div>
+      <div style="font-size:14px;">{{ lead.notas }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Estado + propiedades -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">Cambiar estado</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      {% for estado in ['nuevo','contactado','visito','interesado','negociacion','frio','cerrado'] %}
+      <form action="/leads/{{ lead.id }}/estado" method="POST">
+        <input type="hidden" name="estado" value="{{ estado }}">
+        <button type="submit" class="btn btn-sm {{ 'btn-primary' if lead.estado == estado else 'btn-ghost' }}">{{ estado|capitalize }}</button>
+      </form>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px;">🏠 Propiedades visitadas</div>
+      {% set realizadas = visitas | selectattr('realizada') | list %}
+      {% if realizadas %}
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          {% for v in realizadas %}
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:8px;padding:8px 12px;">
+            <div>
+              <div style="font-size:13px;font-weight:500;">{{ v.propiedad }}</div>
+              <div style="font-size:11px;color:var(--muted);">{{ v.fecha_hora.strftime('%d/%m/%Y – %H:%M hs') }}</div>
+            </div>
+            <span class="badge badge-success" style="font-size:10px;">Visitó ✔</span>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="font-size:13px;color:var(--muted);">Sin propiedades visitadas aún.</div>
+      {% endif %}
+      <a href="{{ url_for('nueva_visita', lead_id=lead.id) }}" class="btn btn-ghost btn-sm" style="margin-top:10px;">+ Agendar visita</a>
+    </div>
+  </div>
+</div>
+
+<!-- VISITAS AGENDADAS PENDIENTES -->
+{% set pendientes = visitas | rejectattr('realizada') | list %}
+{% if pendientes %}
+<div class="section-title" style="margin-top:28px;"><span class="dot" style="background:#7F77DD"></span> Visitas agendadas (pendientes de confirmar)</div>
+
+{% for visita in pendientes %}
+<div class="card" style="margin-bottom:12px;border-left:3px solid
+  {% if visita.urgencia == 'hoy' %}var(--red)
+  {% elif visita.urgencia == 'vencida' %}var(--amber)
+  {% else %}#7F77DD{% endif %};">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-size:15px;font-weight:600;">🏠 {{ visita.propiedad }}</div>
+      <div style="margin-top:4px;font-size:13px;font-weight:500;
+        color:{% if visita.urgencia == 'hoy' %}var(--red){% elif visita.urgencia == 'vencida' %}var(--amber){% else %}var(--accent){% endif %}">
+        📅 {{ visita.estado_label }}
+      </div>
+      {% if visita.notas %}
+      <div style="margin-top:5px;font-size:13px;color:var(--muted);">📝 {{ visita.notas }}</div>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="toggleConfirmar({{ visita.id }})" class="btn btn-primary btn-sm">✔ Confirmar realizada</button>
+      <button onclick="toggleReagendar({{ visita.id }})" class="btn btn-ghost btn-sm">📅 Reagendar</button>
+      <form action="/visitas/{{ visita.id }}/confirmar" method="POST" onsubmit="return confirm('¿Cancelar esta visita?')">
+        <input type="hidden" name="accion" value="cancelar">
+        <button type="submit" class="btn btn-danger btn-sm">✕ Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Panel confirmar -->
+  <div id="confirmar-{{ visita.id }}" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <form action="/visitas/{{ visita.id }}/confirmar" method="POST">
+      <input type="hidden" name="accion" value="realizada">
+      <div class="form-group">
+        <label>¿Cómo resultó la visita? (opcional)</label>
+        <textarea name="resultado" class="form-control" rows="2"
+          placeholder="Ej: Muy interesada, quiere traer a su hija la próxima semana..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">✔ Confirmar – generar seguimientos automáticos</button>
+    </form>
+  </div>
+
+  <!-- Panel reagendar -->
+  <div id="reagendar-{{ visita.id }}" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <form action="/visitas/{{ visita.id }}/confirmar" method="POST" style="display:flex;gap:10px;align-items:flex-end;">
+      <input type="hidden" name="accion" value="reagendar">
+      <div class="form-group" style="margin:0;flex:1;">
+        <label>Nueva fecha y hora</label>
+        <input type="datetime-local" name="nueva_fecha_hora" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- HISTORIAL VISITAS REALIZADAS -->
+{% set realizadas = visitas | selectattr('realizada') | list %}
+<div class="section-title" style="margin-top:{% if pendientes %}16px{% else %}28px{% endif %};"><span class="dot dot-green"></span> Historial de visitas realizadas ({{ realizadas|length }})</div>
+
+{% for visita in realizadas %}
+<div class="card" style="margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;">
+    <div>
+      <strong>🏠 {{ visita.propiedad }}</strong>
+      <span style="margin-left:10px;font-size:13px;color:var(--muted);">{{ visita.fecha_hora.strftime('%d/%m/%Y – %H:%M hs') }}</span>
+    </div>
+    <span class="badge badge-success">Realizada ✔</span>
+  </div>
+  {% if visita.notas %}
+  <div style="margin-top:8px;font-size:13px;color:var(--muted);">📝 {{ visita.notas }}</div>
+  {% endif %}
+  {% if visita.resultado %}
+  <div style="margin-top:6px;font-size:13px;">💬 {{ visita.resultado }}</div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty-state"><div class="icon">🏠</div>Sin visitas realizadas. <a href="{{ url_for('nueva_visita', lead_id=lead.id) }}">Agendar primera visita →</a></div>
+{% endfor %}
+
+<!-- SEGUIMIENTOS -->
+<div class="section-title"><span class="dot dot-red"></span> Seguimientos programados</div>
+
+{% for tarea in tareas %}
+<div class="tarea-card {{ 'completado' if tarea.estado == 'completado' }}" id="tarea-{{ tarea.id }}">
+  <div class="tarea-info">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="tarea-tipo">{{ tarea.tipo_label }}</div>
+      <span class="badge {{ 'badge-success' if tarea.estado == 'completado' else 'badge-caliente' if tarea.estado == 'pendiente' else 'badge-muted' }}">
+        {{ tarea.estado|capitalize }}
+      </span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+      <span style="font-size:12px;color:var(--muted);">📅 Fecha:</span>
+      {% if tarea.estado != 'completado' %}
+      <input type="date" class="form-control" style="width:170px;padding:4px 8px;font-size:12px;"
+        value="{{ tarea.fecha_programada.strftime('%Y-%m-%d') }}"
+        onchange="cambiarFecha({{ tarea.id }}, this)">
+      <span id="fecha-label-{{ tarea.id }}" style="font-size:12px;color:var(--accent);display:none;">✔ Guardado</span>
+      {% else %}
+      <span style="font-size:12px;">{{ tarea.fecha_programada.strftime('%d/%m/%Y') }}</span>
+      {% endif %}
+    </div>
+    <textarea class="form-control msg-box" rows="2" style="margin-top:8px;font-size:13px;"
+      id="msg-{{ tarea.id }}"
+      {{ 'disabled' if tarea.estado == 'completado' }}
+      onblur="guardarMensaje({{ tarea.id }}, this)">{{ tarea.mensaje_sugerido }}</textarea>
+  </div>
+
+  {% if tarea.estado != 'completado' %}
+  <div class="tarea-acciones" style="flex-direction:column;gap:8px;">
+    <button onclick="abrirWA('{{ lead.telefono | replace('+','') | replace(' ','') | replace('-','') }}', {{ tarea.id }})" class="btn btn-wa btn-sm">💬 WhatsApp</button>
+    <button onclick="completarTarea({{ tarea.id }}, this)" class="btn btn-primary btn-sm">✔ Hecho</button>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty-state"><div class="icon">📋</div>Sin seguimientos. Se generan automáticamente al confirmar una visita.</div>
+{% endfor %}
+
+<script>
+function toggleConfirmar(id) {
+  const el = document.getElementById('confirmar-' + id);
+  const re = document.getElementById('reagendar-' + id);
+  if (re) re.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function toggleReagendar(id) {
+  const el = document.getElementById('reagendar-' + id);
+  const co = document.getElementById('confirmar-' + id);
+  if (co) co.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function cambiarFecha(id, input) {
+  const formData = new FormData();
+  formData.append('nueva_fecha', input.value);
+  fetch('/tareas/' + id + '/cambiar-fecha', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        const label = document.getElementById('fecha-label-' + id);
+        label.style.display = 'inline';
+        setTimeout(() => label.style.display = 'none', 2000);
+      }
+    });
+}
+</script>
+{% endblock %}

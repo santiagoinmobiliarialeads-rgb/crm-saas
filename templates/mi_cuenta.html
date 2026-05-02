@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Mi cuenta – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Mi cuenta</h2></div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <!-- Info cuenta -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">Tu cuenta</div>
+    <table style="font-size:14px;width:100%;">
+      <tr><td style="color:var(--muted);padding:6px 0;width:130px;">Nombre</td><td>{{ usuario.nombre }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Email</td><td>{{ usuario.email }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Plan</td><td><span class="badge badge-success">{{ usuario.plan_nombre }}</span></td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Leads</td><td>{{ usuario.leads_count }} / {{ usuario.limite_leads }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Miembro desde</td><td>{{ usuario.creado_en.strftime('%d/%m/%Y') }}</td></tr>
+    </table>
+    {% if usuario.prueba_activa %}
+    <div style="margin-top:14px;background:var(--amber-lt);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--amber);">
+      ⏳ Período de prueba: {{ usuario.dias_prueba_restantes }} días restantes
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Cambiar contraseña -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">Cambiar contraseña</div>
+    <form method="POST">
+      <input type="hidden" name="accion" value="cambiar_password">
+      <div class="form-group">
+        <label>Contraseña actual</label>
+        <input type="password" name="password_actual" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Nueva contraseña</label>
+        <input type="password" name="password_nueva" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Actualizar contraseña</button>
+    </form>
+  </div>
+</div>
+
+<!-- Cambiar plan -->
+<div class="card" style="margin-top:20px;">
+  <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">Cambiar plan</div>
+  <form method="POST" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <input type="hidden" name="accion" value="cambiar_plan">
+    {% for key, plan in usuario.PLANES.items() %}
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;">
+      <input type="radio" name="plan" value="{{ key }}" {{ 'checked' if usuario.plan == key }}>
+      {{ plan.nombre }} ({{ plan.limite }} leads – ${{ plan.precio }}/mes)
+    </label>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+  </form>
+  <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+    Los pagos se coordinan directamente con el administrador.
+  </div>
+</div>
+{% endblock %}

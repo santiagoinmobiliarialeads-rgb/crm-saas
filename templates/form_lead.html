@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{{ accion }} lead – InmoCRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>{{ accion }} lead</h2>
+  <a href="{{ url_for('leads') }}" class="btn btn-ghost">Cancelar</a>
+</div>
+
+<div class="card" style="max-width:600px;">
+  <form method="POST">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" name="nombre" class="form-control" required value="{{ lead.nombre if lead else '' }}" placeholder="Ej: Juan García">
+      </div>
+      <div class="form-group">
+        <label>Teléfono (formato WhatsApp) *</label>
+        <input type="text" name="telefono" class="form-control" required value="{{ lead.telefono if lead else '' }}" placeholder="Ej: +5491123456789">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Estado</label>
+        <select name="estado" class="form-control">
+          {% for e in ['nuevo','contactado','visito','interesado','negociacion','frio','cerrado'] %}
+          <option value="{{ e }}" {{ 'selected' if lead and lead.estado == e }}>{{ e|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Temperatura</label>
+        <select name="temperatura" class="form-control">
+          <option value="caliente" {{ 'selected' if lead and lead.temperatura == 'caliente' }}>🔥 Caliente</option>
+          <option value="tibio" {{ 'selected' if lead and lead.temperatura == 'tibio' }}>🟡 Tibio</option>
+          <option value="frio" {{ 'selected' if lead and lead.temperatura == 'frio' }}>❄️ Frío</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Notas generales</label>
+      <textarea name="notas" class="form-control" placeholder="Ej: Busca 3 ambientes en zona norte, tiene pre-aprobación hipotecaria...">{{ lead.notas if lead else '' }}</textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+      {% if lead %}
+      <form action="{{ url_for('eliminar_lead', id=lead.id) }}" method="POST" onsubmit="return confirm('¿Eliminar este lead?')">
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+      </form>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">{{ 'Guardar cambios' if lead else 'Crear lead' }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

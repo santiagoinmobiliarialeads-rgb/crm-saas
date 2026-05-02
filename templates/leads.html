@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Leads – InmoCRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Leads</h2>
+  <a href="{{ url_for('nuevo_lead') }}" class="btn btn-primary">+ Nuevo lead</a>
+</div>
+
+<!-- Búsqueda -->
+<form method="GET" action="{{ url_for('leads') }}" style="margin-bottom:16px;">
+  <div style="display:flex;gap:10px;align-items:center;">
+    <input
+      type="text"
+      name="q"
+      value="{{ busqueda }}"
+      class="form-control"
+      placeholder="🔍 Buscar por nombre o teléfono..."
+      style="max-width:320px;"
+    >
+    {% if estado_filtro %}<input type="hidden" name="estado" value="{{ estado_filtro }}">{% endif %}
+    {% if temp_filtro %}<input type="hidden" name="temperatura" value="{{ temp_filtro }}">{% endif %}
+    <button type="submit" class="btn btn-ghost">Buscar</button>
+    {% if busqueda %}
+    <a href="{{ url_for('leads', estado=estado_filtro, temperatura=temp_filtro) }}" class="btn btn-ghost" style="color:var(--red);">✕ Limpiar</a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- Filtros -->
+<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+  <span style="font-size:12px;color:var(--muted);font-weight:500;">Estado:</span>
+  <a href="{{ url_for('leads', q=busqueda, temperatura=temp_filtro) }}"
+     class="btn btn-sm {{ 'btn-primary' if not estado_filtro else 'btn-ghost' }}">Todos</a>
+  {% for e in ['nuevo','contactado','visito','interesado','negociacion','frio','cerrado'] %}
+  <a href="{{ url_for('leads', estado=e, q=busqueda, temperatura=temp_filtro) }}"
+     class="btn btn-sm {{ 'btn-primary' if estado_filtro == e else 'btn-ghost' }}">{{ e|capitalize }}</a>
+  {% endfor %}
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+  <span style="font-size:12px;color:var(--muted);font-weight:500;">Temperatura:</span>
+  <a href="{{ url_for('leads', q=busqueda, estado=estado_filtro) }}"
+     class="btn btn-sm {{ 'btn-primary' if not temp_filtro else 'btn-ghost' }}">Todas</a>
+  <a href="{{ url_for('leads', temperatura='caliente', q=busqueda, estado=estado_filtro) }}"
+     class="btn btn-sm {{ 'btn-primary' if temp_filtro == 'caliente' else 'btn-ghost' }}">🔥 Caliente</a>
+  <a href="{{ url_for('leads', temperatura='tibio', q=busqueda, estado=estado_filtro) }}"
+     class="btn btn-sm {{ 'btn-primary' if temp_filtro == 'tibio' else 'btn-ghost' }}">🟡 Tibio</a>
+  <a href="{{ url_for('leads', temperatura='frio', q=busqueda, estado=estado_filtro) }}"
+     class="btn btn-sm {{ 'btn-primary' if temp_filtro == 'frio' else 'btn-ghost' }}">❄️ Frío</a>
+</div>
+
+{% if busqueda %}
+<div style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+  {{ leads|length }} resultado{{ 's' if leads|length != 1 }} para "<strong>{{ busqueda }}</strong>"
+</div>
+{% endif %}
+
+<div class="card" style="padding:0;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Estado</th>
+          <th>Temperatura</th>
+          <th>Último contacto</th>
+          <th>Próxima visita</th>
+          <th>Tareas</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        {% set inactivo = lead.dias_sin_contacto > 7 and lead.temperatura in ['caliente','tibio'] and lead.estado != 'cerrado' %}
+        <tr {% if inactivo %}style="background:#FFF8F8;"{% endif %}>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              {% if inactivo %}
+              <span title="{{ lead.dias_sin_contacto }} días sin contacto" style="font-size:14px;">🔴</span>
+              {% endif %}
+              <a href="{{ url_for('ver_lead', id=lead.id) }}"
+                 style="font-weight:600;color:var(--accent);text-decoration:none;">
+                {{ lead.nombre }}
+              </a>
+            </div>
+            {% if inactivo %}
+            <div style="font-size:11px;color:var(--red);margin-top:2px;">
+              ⚠ {{ lead.dias_sin_contacto }} días sin contacto
+            </div>
+            {% endif %}
+          </td>
+          <td style="font-family:'DM Mono',monospace;font-size:13px;">{{ lead.telefono }}</td>
+          <td><span class="badge badge-muted">{{ lead.estado|capitalize }}</span></td>
+          <td><span class="badge badge-{{ lead.temperatura }}">{{ lead.temperatura|capitalize }}</span></td>
+          <td style="font-size:13px;">
+            {{ lead.ultimo_contacto.strftime('%d/%m/%Y') if lead.ultimo_contacto else '–' }}
+          </td>
+          <td style="font-size:13px;">
+            {% if lead.visita_proxima %}
+            <span style="color:
+              {% if lead.visita_proxima.urgencia == 'hoy' %}var(--red)
+              {% elif lead.visita_proxima.urgencia == 'manana' %}var(--amber)
+              {% else %}var(--accent){% endif %};font-weight:500;">
+              {{ lead.visita_proxima.estado_label }}
+            </span>
+            {% else %}
+            <span style="color:var(--muted);">–</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if lead.tareas_pendientes_count > 0 %}
+            <span class="badge badge-caliente">{{ lead.tareas_pendientes_count }} pend.</span>
+            {% else %}
+            <span style="color:var(--muted);font-size:13px;">–</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{{ url_for('ver_lead', id=lead.id) }}" class="btn btn-ghost btn-sm">Ver</a>
+              <a href="https://wa.me/{{ lead.telefono | replace('+','') | replace(' ','') | replace('-','') }}"
+                 target="_blank" class="btn btn-wa btn-sm">💬</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="empty-state">
+            {% if busqueda %}
+              No se encontraron resultados para "{{ busqueda }}".
+            {% else %}
+              No hay leads todavía. <a href="{{ url_for('nuevo_lead') }}">Crear el primero →</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

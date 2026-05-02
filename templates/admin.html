@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Admin – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>⚙️ Panel Admin</h2>
+  <span style="font-size:13px;color:var(--muted);">{{ usuarios|length }} asesores registrados</span>
+</div>
+
+<div class="metrics-grid" style="margin-bottom:28px;">
+  <div class="metric-card">
+    <div class="label">Total asesores</div>
+    <div class="value">{{ usuarios|length }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Activos</div>
+    <div class="value" style="color:var(--accent)">{{ usuarios | selectattr('activo') | list | length }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">En prueba</div>
+    <div class="value" style="color:var(--amber)">{{ usuarios | selectattr('prueba_activa') | list | length }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">Total leads</div>
+    <div class="value">{{ usuarios | sum(attribute='leads_count') }}</div>
+  </div>
+</div>
+
+<div class="card" style="padding:0;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Leads</th>
+          <th>Prueba</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td style="font-weight:500;">{{ u.nombre }}</td>
+          <td style="font-size:13px;">{{ u.email }}</td>
+          <td>
+            <form action="/admin/usuario/{{ u.id }}/plan" method="POST" style="display:flex;gap:6px;align-items:center;">
+              <select name="plan" class="form-control" style="padding:4px 8px;font-size:12px;width:90px;">
+                {% for key, plan in u.PLANES.items() %}
+                <option value="{{ key }}" {{ 'selected' if u.plan == key }}>{{ plan.nombre }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-ghost btn-sm">✔</button>
+            </form>
+          </td>
+          <td style="font-size:13px;">{{ u.leads_count }} / {{ u.limite_leads }}</td>
+          <td style="font-size:12px;">
+            {% if u.prueba_activa %}
+            <span style="color:var(--amber);">⏳ {{ u.dias_prueba_restantes }}d</span>
+            {% elif u.periodo_prueba %}
+            <span style="color:var(--red);">Vencida</span>
+            {% else %}
+            <span style="color:var(--muted);">–</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {{ 'badge-success' if u.activo else 'badge-caliente' }}">
+              {{ 'Activo' if u.activo else 'Inactivo' }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <form action="/admin/usuario/{{ u.id }}/toggle" method="POST">
+                <button type="submit" class="btn btn-ghost btn-sm">
+                  {{ '🔴 Desactivar' if u.activo else '🟢 Activar' }}
+                </button>
+              </form>
+              <form action="/admin/usuario/{{ u.id }}/eliminar" method="POST"
+                    onsubmit="return confirm('¿Eliminar a {{ u.nombre }}? Se borran todos sus datos.')">
+                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty-state">No hay asesores registrados aún.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

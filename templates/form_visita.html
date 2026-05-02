@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Agendar visita – {{ lead.nombre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{{ url_for('ver_lead', id=lead.id) }}" style="color:var(--muted);font-size:13px;">← Volver</a>
+    <h2>Agendar visita – {{ lead.nombre }}</h2>
+  </div>
+</div>
+
+<div class="card" style="max-width:620px;">
+
+  <div style="background:var(--accent-lt);border-radius:8px;padding:12px 16px;margin-bottom:22px;font-size:13px;color:var(--accent);">
+    💡 <strong>¿Cómo funciona?</strong><br>
+    Si agendás la visita para el futuro → aparece como recordatorio en el dashboard.<br>
+    El día que la visita se realice, confirmás con un botón y ahí se generan los seguimientos automáticos.
+  </div>
+
+  <form method="POST">
+    <div class="form-group">
+      <label>Propiedad a visitar *</label>
+      <input type="text" name="propiedad" class="form-control" required
+        placeholder="Ej: Depto 3 amb – Lavalle 500, Tucumán">
+    </div>
+
+    <div class="form-group">
+      <label>Fecha y hora de la visita *</label>
+      <input type="datetime-local" name="fecha_hora" class="form-control" required id="fecha_input">
+      <div id="fecha-hint" style="margin-top:6px;font-size:12px;color:var(--muted);"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Notas previas a la visita</label>
+      <textarea name="notas" class="form-control" rows="3"
+        placeholder="Ej: Viene con su esposa Laura. Interés en inversión. Tiene efectivo disponible..."></textarea>
+    </div>
+
+    <div style="text-align:right;margin-top:8px;">
+      <button type="submit" class="btn btn-primary" id="btn-submit">Agendar visita</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const input = document.getElementById('fecha_input');
+const hint  = document.getElementById('fecha-hint');
+const btn   = document.getElementById('btn-submit');
+
+input.addEventListener('change', function() {
+  const sel = new Date(this.value);
+  const ahora = new Date();
+  if (sel > ahora) {
+    hint.textContent = '📅 Se agendará como visita futura – aparecerá como recordatorio en el dashboard.';
+    hint.style.color = 'var(--accent)';
+    btn.textContent = 'Agendar visita futura';
+  } else {
+    hint.textContent = '✔ La fecha es pasada – se registrará como visita ya realizada y se generarán los seguimientos.';
+    hint.style.color = 'var(--muted)';
+    btn.textContent = 'Registrar visita realizada';
+  }
+});
+</script>
+{% endblock %}

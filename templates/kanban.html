@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Kanban – InmoCRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Pipeline Kanban</h2>
+  <a href="{{ url_for('nuevo_lead') }}" class="btn btn-primary">+ Nuevo lead</a>
+</div>
+
+<div class="kanban-board">
+  {% set colores = {'nuevo':'#E6F1FB','contactado':'#FAEEDA','visito':'#EEEDFE','interesado':'#E1F5EE','negociacion':'#E1F5EE','frio':'#F1EFE8','cerrado':'#EAF3DE'} %}
+  {% set labels = {'nuevo':'Nuevo','contactado':'Contactado','visito':'Visitó','interesado':'Interesado','negociacion':'Negociación','frio':'Frío','cerrado':'Cerrado'} %}
+
+  {% for estado in estados %}
+  <div class="kanban-col">
+    <div class="kanban-col-header" style="background:{{ colores[estado] }}; color:var(--text);">
+      {{ labels[estado] }} ({{ leads_por_estado[estado]|length }})
+    </div>
+    <div class="kanban-items">
+      {% for lead in leads_por_estado[estado] %}
+      <a href="{{ url_for('ver_lead', id=lead.id) }}" class="kanban-item">
+        <div style="font-weight:500;font-size:13px;">{{ lead.nombre }}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">
+          <span class="badge badge-{{ lead.temperatura }}" style="font-size:10px;padding:2px 6px;">{{ lead.temperatura }}</span>
+          {% if lead.tareas_pendientes_count > 0 %}
+          <span style="margin-left:4px;font-size:10px;color:var(--red);">{{ lead.tareas_pendientes_count }} pendientes</span>
+          {% endif %}
+        </div>
+      </a>
+      {% else %}
+      <div style="font-size:12px;color:var(--muted);padding:10px 4px;text-align:center;">Vacío</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

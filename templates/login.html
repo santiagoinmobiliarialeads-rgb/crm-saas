@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso – InmoCRM</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--bg); }
+    .auth-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:40px; width:100%; max-width:400px; box-shadow:var(--shadow); }
+    .auth-card h1 { font-size:22px; font-weight:600; color:var(--accent); margin-bottom:4px; }
+    .auth-card p  { font-size:13px; color:var(--muted); margin-bottom:28px; }
+  </style>
+</head>
+<body>
+<div class="auth-card">
+  <h1>🏠 InmoCRM</h1>
+  <p>Ingresá para acceder a tu cuenta</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-msg flash-{{ cat }}" style="margin-bottom:16px;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST">
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" name="email" class="form-control" required autofocus placeholder="tu@email.com">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" name="password" class="form-control" required placeholder="••••••••">
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px;">Entrar</button>
+  </form>
+
+  <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted);">
+    ¿No tenés cuenta? <a href="{{ url_for('registro') }}" style="color:var(--accent);">Registrate gratis</a>
+  </div>
+</div>
+</body>
+</html>

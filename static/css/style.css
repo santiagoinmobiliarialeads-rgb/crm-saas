@@ -1,0 +1,378 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #F5F4F0;
+  --surface:   #FFFFFF;
+  --border:    #E2E0D8;
+  --text:      #1A1A18;
+  --muted:     #787870;
+  --accent:    #1A5C3A;
+  --accent-lt: #E6F2EB;
+  --red:       #C0392B;
+  --red-lt:    #FDECEA;
+  --amber:     #B7660A;
+  --amber-lt:  #FEF3E2;
+  --blue:      #1A4A8A;
+  --blue-lt:   #E8F0FB;
+  --radius:    10px;
+  --shadow:    0 1px 3px rgba(0,0,0,.08);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.sidebar {
+  position: fixed; top: 0; left: 0;
+  width: 220px; height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 24px 0;
+  z-index: 100;
+}
+
+.sidebar-brand {
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.sidebar-brand h1 { font-size: 16px; font-weight: 600; color: var(--accent); }
+.sidebar-brand p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.sidebar nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px; font-weight: 500;
+  border-radius: 0;
+  transition: all .15s;
+}
+.sidebar nav a:hover, .sidebar nav a.active {
+  color: var(--accent);
+  background: var(--accent-lt);
+}
+.sidebar nav a .icon { font-size: 16px; width: 20px; text-align: center; }
+
+.main {
+  margin-left: 220px;
+  padding: 32px;
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.page-header h2 { font-size: 22px; font-weight: 600; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.metric-card .label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+.metric-card .value { font-size: 28px; font-weight: 600; margin-top: 4px; color: var(--text); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer; text-decoration: none;
+  transition: all .15s;
+}
+.btn-primary   { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: #154d30; }
+.btn-ghost     { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-ghost:hover { background: var(--bg); }
+.btn-wa        { background: #25D366; color: #fff; border-color: #25D366; }
+.btn-wa:hover  { background: #1ebe5d; }
+.btn-danger    { background: var(--red-lt); color: var(--red); border-color: #f5c6c2; }
+.btn-danger:hover { background: #fad6d3; }
+.btn-sm        { padding: 5px 10px; font-size: 12px; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.badge-caliente { background: var(--red-lt);   color: var(--red); }
+.badge-tibio    { background: var(--amber-lt);  color: var(--amber); }
+.badge-frio     { background: var(--blue-lt);   color: var(--blue); }
+.badge-success  { background: var(--accent-lt); color: var(--accent); }
+.badge-muted    { background: var(--bg);        color: var(--muted); border: 1px solid var(--border); }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg); }
+
+/* ── Forms ── */
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--muted); }
+.form-control {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px; font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+  transition: border .15s;
+}
+.form-control:focus { outline: none; border-color: var(--accent); }
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ── Flash messages ── */
+.flash-msg {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.flash-success { background: var(--accent-lt); color: var(--accent); }
+.flash-info    { background: var(--blue-lt); color: var(--blue); }
+.flash-danger  { background: var(--red-lt); color: var(--red); }
+
+/* ── Tarea card ── */
+.tarea-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex; align-items: flex-start; gap: 14px;
+}
+.tarea-card.urgente { border-left: 3px solid var(--red); }
+.tarea-card .tarea-info { flex: 1; }
+.tarea-card .tarea-nombre { font-weight: 600; font-size: 15px; }
+.tarea-card .tarea-meta   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tarea-card .tarea-tipo   { font-size: 12px; font-weight: 500; color: var(--accent); margin-top: 4px; }
+.tarea-card .tarea-acciones { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+
+.msg-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 10px;
+  white-space: pre-wrap;
+}
+
+/* ── Kanban ── */
+.kanban-board {
+  display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px;
+}
+.kanban-col {
+  min-width: 200px; max-width: 220px; flex-shrink: 0;
+}
+.kanban-col-header {
+  padding: 8px 12px;
+  border-radius: 8px 8px 0 0;
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  background: var(--border); color: var(--muted);
+}
+.kanban-items { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
+.kanban-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  text-decoration: none; color: var(--text);
+  display: block;
+}
+.kanban-item:hover { border-color: var(--accent); }
+
+/* ── Secciones del dashboard ── */
+.section-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted);
+  margin-bottom: 14px; margin-top: 28px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.dot-red    { background: var(--red); }
+.dot-amber  { background: #F0A500; }
+.dot-green  { background: var(--accent); }
+
+/* ── Completado overlay ── */
+.completado { opacity: .45; }
+.completado .tarea-nombre { text-decoration: line-through; }
+
+/* ── Misc ── */
+.empty-state {
+  text-align: center; padding: 40px 20px;
+  color: var(--muted); font-size: 14px;
+}
+.empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+
+.dias-badge {
+  font-size: 11px; font-weight: 500;
+  padding: 2px 8px; border-radius: 20px;
+  background: var(--red-lt); color: var(--red);
+}
+
+a { color: inherit; }
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    top: 0; left: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    z-index: 200;
+  }
+
+  .sidebar-brand {
+    padding: 12px 16px;
+    border-bottom: none;
+    margin-bottom: 0;
+    flex: 1;
+  }
+  .sidebar-brand h1 { font-size: 15px; }
+  .sidebar-brand p  { display: none; }
+
+  .sidebar nav {
+    display: none;
+    position: fixed;
+    top: 52px; left: 0;
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    z-index: 200;
+  }
+  .sidebar nav.open { display: block; }
+  .sidebar nav a { padding: 14px 20px; font-size: 15px; }
+
+  .sidebar-logout {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+  }
+  .sidebar nav.open ~ .sidebar-logout { display: block; }
+
+  .hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px; height: 52px;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--text);
+    border: none;
+    background: transparent;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 72px 14px 24px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .page-header h2 { font-size: 18px; }
+
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .metric-card { padding: 14px; }
+  .metric-card .value { font-size: 22px; }
+
+  .form-row { grid-template-columns: 1fr; }
+
+  table thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tbody tr {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 12px;
+    background: var(--surface);
+  }
+  tbody td { border: none; padding: 4px 0; font-size: 14px; }
+
+  .tarea-card {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tarea-acciones {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  .tarea-acciones .btn { flex: 1; text-align: center; }
+
+  .kanban-board { flex-direction: column; }
+  .kanban-col { min-width: 100%; max-width: 100%; }
+
+  .btn { padding: 10px 16px; font-size: 14px; }
+  .btn-sm { padding: 8px 12px; font-size: 13px; }
+}
+
+@media (min-width: 769px) {
+  .hamburger { display: none; }
+  .sidebar-logout-mobile { display: none; }
+}

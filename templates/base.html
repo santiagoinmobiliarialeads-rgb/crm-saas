@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}InmoCRM{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h1>🏠 InmoCRM</h1>
+    <p>{{ usuario.nombre }}</p>
+  </div>
+  <button class="hamburger" onclick="toggleMenu()">☰</button>
+  <nav id="nav-menu">
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">
+      <span class="icon">📊</span> Dashboard
+    </a>
+    <a href="{{ url_for('leads') }}" class="{{ 'active' if request.endpoint in ['leads','ver_lead','nuevo_lead','editar_lead'] }}">
+      <span class="icon">👥</span> Leads
+    </a>
+    <a href="{{ url_for('kanban') }}" class="{{ 'active' if request.endpoint == 'kanban' }}">
+      <span class="icon">📋</span> Kanban
+    </a>
+    <a href="{{ url_for('plantillas') }}" class="{{ 'active' if request.endpoint == 'plantillas' }}">
+      <span class="icon">✏️</span> Plantillas
+    </a>
+    <a href="{{ url_for('mi_cuenta') }}" class="{{ 'active' if request.endpoint == 'mi_cuenta' }}">
+      <span class="icon">👤</span> Mi cuenta
+    </a>
+    {% if usuario.es_admin %}
+    <a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint == 'admin' }}" style="color:#F0A500;">
+      <span class="icon">⚙️</span> Admin
+    </a>
+    {% endif %}
+    <a href="{{ url_for('logout') }}">
+      <span class="icon">🚪</span> Cerrar sesión
+    </a>
+  </nav>
+  <div style="margin-top:auto;padding:16px 20px;" class="sidebar-logout">
+    {% if usuario.prueba_activa %}
+    <div style="background:var(--amber-lt);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--amber);text-align:center;">
+      ⏳ Prueba: {{ usuario.dias_prueba_restantes }} días restantes
+    </div>
+    {% endif %}
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:8px;">
+      Plan {{ usuario.plan_nombre }} · {{ usuario.leads_count }}/{{ usuario.limite_leads }} leads
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm" style="width:100%;text-align:center;">🚪 Salir</a>
+  </div>
+</aside>
+
+<main class="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-msg flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+function toggleMenu() {
+  document.getElementById('nav-menu').classList.toggle('open');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('#nav-menu a').forEach(a => {
+    a.addEventListener('click', () => document.getElementById('nav-menu').classList.remove('open'));
+  });
+});
+function completarTarea(id, btn) {
+  fetch('/tareas/' + id + '/completar', { method: 'POST' })
+    .then(r => r.json()).then(d => {
+      if (d.ok) {
+        const card = btn.closest('.tarea-card');
+        card.classList.add('completado');
+        btn.disabled = true; btn.textContent = '✔ Listo';
+      }
+    });
+}
+function guardarMensaje(id, textarea) {
+  const fd = new FormData();
+  fd.append('mensaje', textarea.value);
+  fetch('/tareas/' + id + '/mensaje', { method: 'POST', body: fd });
+}
+function abrirWA(telefono, tareaId) {
+  const msg = document.getElementById('msg-' + tareaId).value;
+  window.open('https://wa.me/' + telefono + '?text=' + encodeURIComponent(msg), '_blank');
+}
+function cambiarFecha(id, input) {
+  const fd = new FormData();
+  fd.append('nueva_fecha', input.value);
+  fetch('/tareas/' + id + '/cambiar-fecha', { method: 'POST', body: fd })
+    .then(r => r.json()).then(d => {
+      if (d.ok) {
+        const label = document.getElementById('fecha-label-' + id);
+        if (label) { label.style.display = 'inline'; setTimeout(() => label.style.display = 'none', 2000); }
+      }
+    });
+}
+function toggleConfirmar(id) {
+  const el = document.getElementById('confirmar-' + id);
+  const re = document.getElementById('reagendar-' + id);
+  if (re) re.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function toggleReagendar(id) {
+  const el = document.getElementById('reagendar-' + id);
+  const co = document.getElementById('confirmar-' + id);
+  if (co) co.style.display = 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+</body>
+</html>
