@@ -36,10 +36,14 @@ class Usuario(db.Model):
 
     @property
     def limite_leads(self):
+        if self.es_admin:
+            return 99999
         return self.PLANES.get(self.plan, self.PLANES['basico'])['limite']
 
     @property
     def plan_nombre(self):
+        if self.es_admin:
+            return 'Admin'
         return self.PLANES.get(self.plan, self.PLANES['basico'])['nombre']
 
     @property
@@ -52,6 +56,8 @@ class Usuario(db.Model):
 
     @property
     def puede_crear_lead(self):
+        if self.es_admin:
+            return True, ''
         if not self.activo:
             return False, 'Tu cuenta está desactivada.'
         if self.periodo_prueba and self.prueba_expira and datetime.now() > self.prueba_expira:
