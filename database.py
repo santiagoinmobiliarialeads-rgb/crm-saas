@@ -194,8 +194,57 @@ class Plantilla(db.Model):
     creado_en  = db.Column(db.DateTime, default=datetime.now)
 
     DEFAULTS = {
-        'seguimiento_1':  {'nombre': 'Seguimiento 1 (24hs)',      'texto': 'Hola {nombre}! Fue un gusto mostrarte {propiedad} hoy. Me quede pensando en lo que comentaste, creo que tiene mucho potencial. Alguna pregunta que haya surgido?'},
-        'micro_contacto': {'nombre': 'Micro contacto (dia 3-4)',   'texto': 'Hola {nombre}! Te comparto algo sobre la zona de {propiedad}. Viene creciendo en valor y hay mucha demanda. Seguis evaluando la opcion?'},
-        'seguimiento_2':  {'nombre': 'Seguimiento 2 (dia 5-7)',    'texto': 'Hola {nombre}! {propiedad} sigue disponible y me parece que se ajusta bien a lo que buscas. Podemos charlar 5 minutos esta semana?'},
-        'cierre':         {'nombre': 'Cierre (dia 10-14)',         'texto': 'Hola {nombre}! Han pasado unos dias desde que viste {propiedad}. Llegaste a una decision? Te parece si coordinamos el proximo paso?'},
+        'seguimiento_1':    {'nombre': 'Seguimiento 1 (24hs)',          'texto': 'Hola {nombre}! Fue un gusto mostrarte {propiedad} hoy. Me quede pensando en lo que comentaste, creo que tiene mucho potencial. Alguna pregunta que haya surgido?'},
+        'micro_contacto':   {'nombre': 'Micro contacto (dia 3-4)',       'texto': 'Hola {nombre}! Te comparto algo sobre la zona de {propiedad}. Viene creciendo en valor y hay mucha demanda. Seguis evaluando la opcion?'},
+        'seguimiento_2':    {'nombre': 'Seguimiento 2 (dia 5-7)',        'texto': 'Hola {nombre}! {propiedad} sigue disponible y me parece que se ajusta bien a lo que buscas. Podemos charlar 5 minutos esta semana?'},
+        'cierre':           {'nombre': 'Cierre (dia 10-14)',             'texto': 'Hola {nombre}! Han pasado unos dias desde que viste {propiedad}. Llegaste a una decision? Te parece si coordinamos el proximo paso?'},
+        'captacion_inicio': {'nombre': 'Captacion – Primer contacto',   'texto': 'Hola {nombre}! Te contacto porque me enteré que tenes una propiedad en {propiedad} que podria interesarte poner en venta. Trabajamos con compradores activos en esa zona. Te gustaria que conversemos?'},
+        'captacion_seguimiento': {'nombre': 'Captacion – Seguimiento',  'texto': 'Hola {nombre}! Como estas? Queria retomar la charla sobre {propiedad}. El mercado esta muy activo ahora y hay buenas oportunidades. Tenes unos minutos para hablar?'},
+        'reporte_semanal':  {'nombre': 'Reporte semanal (lunes)',        'texto': 'Hola {nombre}! Te paso el reporte semanal de tu propiedad en {propiedad}. Esta semana tuvimos [X] visitas. Las impresiones generales fueron [COMPLETAR]. Cualquier consulta estoy a disposicion!'},
+        'recordatorio_visita': {'nombre': 'Recordatorio de visita (2hs antes)', 'texto': 'Hola {nombre}! Te recuerdo que en un rato tenemos la visita a {propiedad}. Nos vemos a las {hora}! Cualquier inconveniente avisame.'},
     }
+
+
+class Propietario(db.Model):
+    __tablename__ = 'propietarios'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    usuario_id      = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    nombre          = db.Column(db.String(120), nullable=False)
+    telefono        = db.Column(db.String(30), nullable=False)
+    notas           = db.Column(db.Text, default='')
+    ultimo_contacto = db.Column(db.DateTime, default=datetime.now)
+    creado_en       = db.Column(db.DateTime, default=datetime.now)
+
+    propiedades = db.relationship('PropiedadCaptada', backref='propietario', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def propiedades_activas(self):
+        return [p for p in self.propiedades if p.estado != 'vendida']
+
+
+class PropiedadCaptada(db.Model):
+    __tablename__ = 'propiedades_captadas'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    usuario_id     = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    propietario_id = db.Column(db.Integer, db.ForeignKey('propietarios.id'), nullable=False)
+    direccion      = db.Column(db.String(200), nullable=False)
+    tipo           = db.Column(db.String(50), default='')
+    precio         = db.Column(db.String(50), default='')
+    estado         = db.Column(db.String(30), default='captada')
+    notas          = db.Column(db.Text, default='')
+    visitas_count  = db.Column(db.Integer, default=0)
+    ultimo_reporte = db.Column(db.DateTime, nullable=True)
+    creado_en      = db.Column(db.DateTime, default=datetime.now)
+
+    ESTADOS = {
+        'captada':    'Captada',
+        'en_venta':   'En venta',
+        'reservada':  'Reservada',
+        'vendida':    'Vendida',
+    }
+
+    @property
+    def estado_label(self):
+        return self.ESTADOS.get(self.estado, self.estado)

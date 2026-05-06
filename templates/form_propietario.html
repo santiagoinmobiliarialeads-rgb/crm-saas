@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if propietario else 'Nuevo' }} propietario – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{{ url_for('captaciones') }}" style="color:var(--muted);font-size:13px;">← Volver</a>
+    <h2>{{ 'Editar' if propietario else 'Nuevo' }} propietario</h2>
+  </div>
+</div>
+
+<div class="card" style="max-width:600px;">
+  <form method="POST">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" name="nombre" class="form-control" required value="{{ propietario.nombre if propietario else '' }}" placeholder="Ej: Carlos Méndez">
+      </div>
+      <div class="form-group">
+        <label>Teléfono *</label>
+        <input type="text" name="telefono" class="form-control" required value="{{ propietario.telefono if propietario else '' }}" placeholder="Ej: +5493815222530">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Notas</label>
+      <textarea name="notas" class="form-control" placeholder="Ej: Quiere vender rápido, acepta financiación...">{{ propietario.notas if propietario else '' }}</textarea>
+    </div>
+
+    {% if not propietario %}
+    <div style="padding-top:16px;border-top:1px solid var(--border);margin-top:8px;">
+      <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:14px;">Primera propiedad (opcional)</div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" name="direccion" class="form-control" placeholder="Ej: Lavalle 500, Tucumán">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" class="form-control">
+            <option value="">–</option>
+            <option value="Casa">Casa</option>
+            <option value="Departamento">Departamento</option>
+            <option value="Terreno">Terreno</option>
+            <option value="Local">Local</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio</label>
+          <input type="text" name="precio" class="form-control" placeholder="Ej: USD 80.000">
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div style="text-align:right;margin-top:8px;">
+      <button type="submit" class="btn btn-primary">{{ 'Guardar cambios' if propietario else 'Crear propietario' }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

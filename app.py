@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
-from database import db, Usuario, Lead, Visita, Tarea, Plantilla
+from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, PropiedadCaptada
 from datetime import datetime, timedelta
 from functools import wraps
 import os
@@ -114,8 +114,8 @@ def logout():
 @app.route('/')
 @login_requerido
 def dashboard():
-    u   = usuario_actual()
-    hoy = datetime.now().date()
+    u     = usuario_actual()
+    hoy   = datetime.now().date()
     ahora = datetime.now()
 
     tareas_hoy = Tarea.query.filter(
@@ -143,10 +143,40 @@ def dashboard():
         Visita.fecha_hora < ahora
     ).order_by(Visita.fecha_hora.desc()).all()
 
-    total_leads    = Lead.query.filter_by(usuario_id=u.id).count()
+    # Recordatorios 2hs antes de visita
+    dos_horas = ahora + timedelta(hours=2)
+    visitas_recordatorio = Visita.query.filter(
+        Visita.usuario_id == u.id,
+        Visita.realizada == False,
+        Visita.fecha_hora >= ahora,
+        Visita.fecha_hora <= dos_horas
+    ).order_by(Visita.fecha_hora).all()
+
+    # Plantilla recordatorio
+    plantilla_recordatorio = Plantilla.query.filter_by(usuario_id=u.id, tipo='recordatorio_visita').first()
+    if not plantilla_recordatorio:
+        d = Plantilla.DEFAULTS['recordatorio_visita']
+        plantilla_recordatorio = Plantilla(usuario_id=u.id, tipo='recordatorio_visita', nombre=d['nombre'], texto=d['texto'])
+        db.session.add(plantilla_recordatorio)
+        db.session.commit()
+
+    # Reporte lunes
+    es_lunes = ahora.weekday() == 0
+    propietarios_reporte = []
+    plantilla_reporte = None
+    if es_lunes:
+        propietarios_reporte = Propietario.query.filter_by(usuario_id=u.id).all()
+        plantilla_reporte = Plantilla.query.filter_by(usuario_id=u.id, tipo='reporte_semanal').first()
+        if not plantilla_reporte:
+            d = Plantilla.DEFAULTS['reporte_semanal']
+            plantilla_reporte = Plantilla(usuario_id=u.id, tipo='reporte_semanal', nombre=d['nombre'], texto=d['texto'])
+            db.session.add(plantilla_reporte)
+            db.session.commit()
+
+    total_leads     = Lead.query.filter_by(usuario_id=u.id).count()
     leads_calientes = Lead.query.filter_by(usuario_id=u.id, temperatura='caliente').count()
-    tareas_pend    = Tarea.query.filter_by(usuario_id=u.id, estado='pendiente').count()
-    leads_cerrados = Lead.query.filter_by(usuario_id=u.id, estado='cerrado').count()
+    tareas_pend     = Tarea.query.filter_by(usuario_id=u.id, estado='pendiente').count()
+    leads_cerrados  = Lead.query.filter_by(usuario_id=u.id, estado='cerrado').count()
 
     return render_template('dashboard.html',
         usuario=u,
@@ -154,6 +184,11 @@ def dashboard():
         tareas_proximas=tareas_proximas,
         visitas_agendadas=visitas_agendadas,
         visitas_sin_confirmar=visitas_sin_confirmar,
+        visitas_recordatorio=visitas_recordatorio,
+        plantilla_recordatorio=plantilla_recordatorio,
+        es_lunes=es_lunes,
+        propietarios_reporte=propietarios_reporte,
+        plantilla_reporte=plantilla_reporte,
         total_leads=total_leads,
         leads_calientes=leads_calientes,
         tareas_pendientes=tareas_pend,
@@ -396,7 +431,8 @@ def kanban():
 @login_requerido
 def plantillas():
     u     = usuario_actual()
-    tipos = ['seguimiento_1','micro_contacto','seguimiento_2','cierre']
+    tipos = ['seguimiento_1','micro_contacto','seguimiento_2','cierre',
+             'captacion_inicio','captacion_seguimiento','reporte_semanal','recordatorio_visita']
     plants = []
     for tipo in tipos:
         p = Plantilla.query.filter_by(usuario_id=u.id, tipo=tipo).first()
@@ -496,3 +532,122 @@ def eliminar_usuario(id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# ── Propietarios / Captaciones ─────────────────────────────
+@app.route('/captaciones')
+@login_requerido
+def captaciones():
+    u = usuario_actual()
+    propietarios = Propietario.query.filter_by(usuario_id=u.id).order_by(Propietario.ultimo_contacto.desc()).all()
+    return render_template('captaciones.html', propietarios=propietarios, usuario=u)
+
+@app.route('/captaciones/nuevo', methods=['GET', 'POST'])
+@login_requerido
+def nuevo_propietario():
+    u = usuario_actual()
+    if request.method == 'POST':
+        prop = Propietario(
+            usuario_id      = u.id,
+            nombre          = request.form['nombre'],
+            telefono        = request.form['telefono'],
+            notas           = request.form.get('notas', ''),
+            ultimo_contacto = datetime.now()
+        )
+        db.session.add(prop)
+        db.session.flush()
+
+        # Agregar primera propiedad si la pusieron
+        if request.form.get('direccion'):
+            propiedad = PropiedadCaptada(
+                usuario_id     = u.id,
+                propietario_id = prop.id,
+                direccion      = request.form['direccion'],
+                tipo           = request.form.get('tipo', ''),
+                precio         = request.form.get('precio', ''),
+                estado         = 'captada',
+                notas          = request.form.get('notas_propiedad', '')
+            )
+            db.session.add(propiedad)
+
+        db.session.commit()
+        flash(f'Propietario {prop.nombre} agregado', 'success')
+        return redirect(url_for('ver_propietario', id=prop.id))
+    return render_template('form_propietario.html', propietario=None, usuario=u)
+
+@app.route('/captaciones/<int:id>')
+@login_requerido
+def ver_propietario(id):
+    u    = usuario_actual()
+    prop = Propietario.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    plantilla_reporte = Plantilla.query.filter_by(usuario_id=u.id, tipo='reporte_semanal').first()
+    if not plantilla_reporte:
+        d = Plantilla.DEFAULTS['reporte_semanal']
+        plantilla_reporte = Plantilla(usuario_id=u.id, tipo='reporte_semanal', nombre=d['nombre'], texto=d['texto'])
+        db.session.add(plantilla_reporte)
+        db.session.commit()
+    return render_template('ver_propietario.html', propietario=prop, usuario=u,
+                           ahora=datetime.now(), plantilla_reporte_texto=plantilla_reporte.texto)
+
+@app.route('/captaciones/<int:id>/editar', methods=['GET', 'POST'])
+@login_requerido
+def editar_propietario(id):
+    u    = usuario_actual()
+    prop = Propietario.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    if request.method == 'POST':
+        prop.nombre          = request.form['nombre']
+        prop.telefono        = request.form['telefono']
+        prop.notas           = request.form.get('notas', '')
+        prop.ultimo_contacto = datetime.now()
+        db.session.commit()
+        flash('Propietario actualizado', 'success')
+        return redirect(url_for('ver_propietario', id=prop.id))
+    return render_template('form_propietario.html', propietario=prop, usuario=u)
+
+@app.route('/captaciones/<int:id>/eliminar', methods=['POST'])
+@login_requerido
+def eliminar_propietario(id):
+    u    = usuario_actual()
+    prop = Propietario.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    db.session.delete(prop)
+    db.session.commit()
+    flash('Propietario eliminado', 'info')
+    return redirect(url_for('captaciones'))
+
+@app.route('/captaciones/<int:prop_id>/propiedad/nueva', methods=['POST'])
+@login_requerido
+def nueva_propiedad(prop_id):
+    u    = usuario_actual()
+    prop = Propietario.query.filter_by(id=prop_id, usuario_id=u.id).first_or_404()
+    propiedad = PropiedadCaptada(
+        usuario_id     = u.id,
+        propietario_id = prop_id,
+        direccion      = request.form['direccion'],
+        tipo           = request.form.get('tipo', ''),
+        precio         = request.form.get('precio', ''),
+        estado         = 'captada',
+        notas          = request.form.get('notas_propiedad', '')
+    )
+    db.session.add(propiedad)
+    db.session.commit()
+    flash('Propiedad agregada', 'success')
+    return redirect(url_for('ver_propietario', id=prop_id))
+
+@app.route('/propiedad/<int:id>/estado', methods=['POST'])
+@login_requerido
+def cambiar_estado_propiedad(id):
+    u         = usuario_actual()
+    propiedad = PropiedadCaptada.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    propiedad.estado = request.form['estado']
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/propiedad/<int:id>/visitas', methods=['POST'])
+@login_requerido
+def actualizar_visitas_propiedad(id):
+    u         = usuario_actual()
+    propiedad = PropiedadCaptada.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    propiedad.visitas_count  = int(request.form.get('visitas_count', 0))
+    propiedad.ultimo_reporte = datetime.now()
+    db.session.commit()
+    flash('Estadísticas actualizadas', 'success')
+    return redirect(url_for('ver_propietario', id=propiedad.propietario_id))

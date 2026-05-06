@@ -24,6 +24,9 @@
     <a href="{{ url_for('kanban') }}" class="{{ 'active' if request.endpoint == 'kanban' }}">
       <span class="icon">📋</span> Kanban
     </a>
+    <a href="{{ url_for('captaciones') }}" class="{{ 'active' if request.endpoint in ['captaciones','ver_propietario','nuevo_propietario','editar_propietario'] }}">
+      <span class="icon">🏘️</span> Captaciones
+    </a>
     <a href="{{ url_for('plantillas') }}" class="{{ 'active' if request.endpoint == 'plantillas' }}">
       <span class="icon">✏️</span> Plantillas
     </a>
@@ -85,8 +88,12 @@ function guardarMensaje(id, textarea) {
   fd.append('mensaje', textarea.value);
   fetch('/tareas/' + id + '/mensaje', { method: 'POST', body: fd });
 }
-function abrirWA(telefono, tareaId) {
-  const msg = document.getElementById('msg-' + tareaId).value;
+function abrirWA(telefono, elId) {
+  const msg = document.getElementById(elId).value;
+  window.open('https://wa.me/' + telefono + '?text=' + encodeURIComponent(msg), '_blank');
+}
+function abrirWADirecto(telefono, elId) {
+  const msg = document.getElementById(elId).value;
   window.open('https://wa.me/' + telefono + '?text=' + encodeURIComponent(msg), '_blank');
 }
 function cambiarFecha(id, input) {

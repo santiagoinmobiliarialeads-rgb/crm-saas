@@ -7,6 +7,44 @@
   <span style="font-size:13px;color:var(--muted);">{{ hoy.strftime('%A %d de %B') }}</span>
 </div>
 
+<!-- RECORDATORIO 2HS ANTES -->
+{% if visitas_recordatorio %}
+<div style="margin-bottom:20px;">
+  {% for visita in visitas_recordatorio %}
+  <div class="card" style="border-left:3px solid var(--red);margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px;">⏰</span>
+          <strong style="font-size:15px;">Visita en menos de 2hs – {{ visita.lead.nombre }}</strong>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;">
+          🏠 {{ visita.propiedad }} · {{ visita.fecha_hora.strftime('%H:%M hs') }}
+        </div>
+      </div>
+      <button onclick="abrirWA('{{ visita.lead.telefono | replace('+','') | replace(' ','') | replace('-','') }}', 'recordatorio-{{ visita.id }}')" class="btn btn-wa btn-sm">💬 Recordar al cliente</button>
+    </div>
+    <textarea class="form-control msg-box" rows="2" style="margin-top:10px;font-size:13px;" id="recordatorio-{{ visita.id }}">{{ plantilla_recordatorio.texto | replace('{nombre}', visita.lead.nombre) | replace('{propiedad}', visita.propiedad) | replace('{hora}', visita.fecha_hora.strftime('%H:%M')) }}</textarea>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- REPORTE LUNES -->
+{% if es_lunes and propietarios_reporte %}
+<div class="section-title"><span class="dot" style="background:#7F77DD"></span> Reportes semanales – Enviá hoy a tus propietarios</div>
+{% for prop in propietarios_reporte %}
+{% for propiedad in prop.propiedades %}
+<div class="card" style="margin-bottom:10px;border-left:3px solid #7F77DD;">
+  <div style="font-weight:600;">{{ prop.nombre }} — {{ propiedad.direccion }}</div>
+  <div style="font-size:12px;color:var(--muted);margin-top:3px;">📊 {{ propiedad.visitas_count }} visitas registradas</div>
+  <textarea class="form-control msg-box" rows="2" style="margin-top:8px;font-size:13px;" id="reporte-{{ propiedad.id }}">{{ plantilla_reporte.texto | replace('{nombre}', prop.nombre) | replace('{propiedad}', propiedad.direccion) | replace('[X]', propiedad.visitas_count|string) }}</textarea>
+  <button onclick="abrirWA('{{ prop.telefono | replace('+','') | replace(' ','') | replace('-','') }}', 'reporte-{{ propiedad.id }}')" class="btn btn-wa btn-sm" style="margin-top:8px;">💬 Enviar reporte</button>
+</div>
+{% endfor %}
+{% endfor %}
+{% endif %}
+
 <!-- Métricas -->
 <div class="metrics-grid">
   <div class="metric-card">

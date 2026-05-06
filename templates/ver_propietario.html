@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}{{ propietario.nombre }} – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{{ url_for('captaciones') }}" style="color:var(--muted);font-size:13px;">← Volver</a>
+    <h2>{{ propietario.nombre }}</h2>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="https://wa.me/{{ propietario.telefono | replace('+','') | replace(' ','') | replace('-','') }}" target="_blank" class="btn btn-wa">💬 WhatsApp</a>
+    <a href="{{ url_for('editar_propietario', id=propietario.id) }}" class="btn btn-ghost">Editar</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">Información</div>
+    <table style="font-size:14px;width:100%;">
+      <tr><td style="color:var(--muted);padding:6px 0;width:130px;">Teléfono</td><td style="font-family:'DM Mono',monospace;">{{ propietario.telefono }}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0;">Último contacto</td><td>{{ propietario.ultimo_contacto.strftime('%d/%m/%Y') if propietario.ultimo_contacto else '–' }}</td></tr>
+    </table>
+    {% if propietario.notas %}
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Notas</div>
+      <div style="font-size:14px;">{{ propietario.notas }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Nueva propiedad -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:14px;">+ Agregar propiedad</div>
+    <form action="{{ url_for('nueva_propiedad', prop_id=propietario.id) }}" method="POST">
+      <div class="form-group">
+        <label>Dirección *</label>
+        <input type="text" name="direccion" class="form-control" required placeholder="Ej: Lavalle 500, Tucumán">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" class="form-control">
+            <option value="">–</option>
+            <option value="Casa">Casa</option>
+            <option value="Departamento">Departamento</option>
+            <option value="Terreno">Terreno</option>
+            <option value="Local">Local</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio</label>
+          <input type="text" name="precio" class="form-control" placeholder="Ej: USD 80.000">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Agregar propiedad</button>
+    </form>
+  </div>
+</div>
+
+<!-- Propiedades captadas -->
+<div class="section-title"><span class="dot dot-green"></span> Propiedades captadas ({{ propietario.propiedades|length }})</div>
+
+{% for prop in propietario.propiedades %}
+<div class="card" style="margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-weight:600;font-size:15px;">🏠 {{ prop.direccion }}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">
+        {% if prop.tipo %}{{ prop.tipo }}{% endif %}
+        {% if prop.precio %}· {{ prop.precio }}{% endif %}
+        · <span class="badge badge-muted">{{ prop.estado_label }}</span>
+      </div>
+      {% if prop.notas %}
+      <div style="font-size:13px;margin-top:6px;">📝 {{ prop.notas }}</div>
+      {% endif %}
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;">
+        📊 {{ prop.visitas_count }} visitas registradas
+        {% if prop.ultimo_reporte %}· Último reporte: {{ prop.ultimo_reporte.strftime('%d/%m/%Y') }}{% endif %}
+      </div>
+    </div>
+
+    <!-- Cambiar estado -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <form action="{{ url_for('cambiar_estado_propiedad', id=prop.id) }}" method="POST" style="display:flex;gap:6px;">
+        <select name="estado" class="form-control" style="padding:4px 8px;font-size:12px;">
+          {% for key, label in prop.ESTADOS.items() %}
+          <option value="{{ key }}" {{ 'selected' if prop.estado == key }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-ghost btn-sm">✔</button>
+      </form>
+
+      <!-- Actualizar visitas -->
+      <form action="{{ url_for('actualizar_visitas_propiedad', id=prop.id) }}" method="POST" style="display:flex;gap:6px;align-items:center;">
+        <input type="number" name="visitas_count" value="{{ prop.visitas_count }}" class="form-control" style="width:70px;padding:4px 8px;font-size:12px;">
+        <button type="submit" class="btn btn-ghost btn-sm">📊 Actualizar visitas</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mensaje WhatsApp reporte -->
+  {% set plantilla = plantillas_reporte %}
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Mensaje de reporte para enviar:</div>
+    <textarea class="form-control msg-box" rows="2" style="font-size:13px;" id="msg-rep-{{ prop.id }}">{{ plantilla_reporte_texto | replace('{nombre}', propietario.nombre) | replace('{propiedad}', prop.direccion) | replace('[X]', prop.visitas_count|string) }}</textarea>
+    <button onclick="abrirWADirecto('{{ propietario.telefono | replace('+','') | replace(' ','') | replace('-','') }}', 'msg-rep-{{ prop.id }}')" class="btn btn-wa btn-sm" style="margin-top:8px;">💬 Enviar reporte</button>
+  </div>
+</div>
+{% else %}
+<div class="empty-state"><div class="icon">🏠</div>Sin propiedades. Agregá la primera arriba.</div>
+{% endfor %}
+
+<script>
+function abrirWADirecto(telefono, elId) {
+  const msg = document.getElementById(elId).value;
+  window.open('https://wa.me/' + telefono + '?text=' + encodeURIComponent(msg), '_blank');
+}
+</script>
+{% endblock %}

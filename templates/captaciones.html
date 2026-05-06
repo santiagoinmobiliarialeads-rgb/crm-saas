@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Captaciones – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Captaciones</h2>
+  <a href="{{ url_for('nuevo_propietario') }}" class="btn btn-primary">+ Nuevo propietario</a>
+</div>
+
+<div class="card" style="padding:0;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Propietario</th>
+          <th>Teléfono</th>
+          <th>Propiedades</th>
+          <th>Último contacto</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in propietarios %}
+        <tr>
+          <td>
+            <a href="{{ url_for('ver_propietario', id=p.id) }}" style="font-weight:600;color:var(--accent);">{{ p.nombre }}</a>
+          </td>
+          <td style="font-family:'DM Mono',monospace;font-size:13px;">{{ p.telefono }}</td>
+          <td>
+            {% for prop in p.propiedades %}
+            <span class="badge badge-muted" style="margin-right:4px;margin-bottom:2px;">{{ prop.direccion[:25] }}{% if prop.direccion|length > 25 %}...{% endif %}</span>
+            {% else %}
+            <span style="color:var(--muted);font-size:13px;">Sin propiedades</span>
+            {% endfor %}
+          </td>
+          <td style="font-size:13px;">{{ p.ultimo_contacto.strftime('%d/%m/%Y') if p.ultimo_contacto else '–' }}</td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{{ url_for('ver_propietario', id=p.id) }}" class="btn btn-ghost btn-sm">Ver</a>
+              <a href="https://wa.me/{{ p.telefono | replace('+','') | replace(' ','') | replace('-','') }}" target="_blank" class="btn btn-wa btn-sm">💬</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty-state">No hay propietarios captados. <a href="{{ url_for('nuevo_propietario') }}">Agregar el primero →</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
