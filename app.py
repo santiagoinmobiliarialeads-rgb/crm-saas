@@ -23,7 +23,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 
 with app.app_context():
-    db.create_all(checkfirst=True)
+    db.create_all()
     admin = Usuario.query.filter_by(email=ADMIN_EMAIL).first()
     if not admin:
         admin = Usuario(
