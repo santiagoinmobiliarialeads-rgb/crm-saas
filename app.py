@@ -3,6 +3,18 @@ from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, P
 from datetime import datetime, timedelta
 from functools import wraps
 import os
+import pytz
+
+ZONA = pytz.timezone("America/Argentina/Buenos_Aires")
+
+def ahora_argentina():
+    return datetime.now(pytz.utc).astimezone(ZONA).replace(tzinfo=None)
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, PropiedadCaptada
+from datetime import datetime, timedelta
+from functools import wraps
+import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///crm_saas.db')
@@ -89,7 +101,7 @@ def registro():
             nombre         = nombre,
             plan           = plan,
             periodo_prueba = True,
-            prueba_expira  = datetime.now() + timedelta(days=7),
+            prueba_expira  = ahora_argentina() + timedelta(days=7),
             activo         = True,
             es_admin       = False
         )
@@ -115,8 +127,8 @@ def logout():
 @login_requerido
 def dashboard():
     u     = usuario_actual()
-    hoy   = datetime.now().date()
-    ahora = datetime.now()
+    hoy   = ahora_argentina().date()
+    ahora = ahora_argentina()
 
     tareas_hoy = Tarea.query.filter(
         Tarea.usuario_id == u.id,
@@ -234,7 +246,7 @@ def nuevo_lead():
             estado          = request.form['estado'],
             temperatura     = request.form['temperatura'],
             notas           = request.form.get('notas', ''),
-            ultimo_contacto = datetime.now()
+            ultimo_contacto = ahora_argentina()
         )
         db.session.add(lead)
         db.session.commit()
@@ -249,7 +261,7 @@ def ver_lead(id):
     lead = Lead.query.filter_by(id=id, usuario_id=u.id).first_or_404()
     visitas = Visita.query.filter_by(lead_id=id, usuario_id=u.id).order_by(Visita.fecha_hora.desc()).all()
     tareas  = Tarea.query.filter_by(lead_id=id, usuario_id=u.id).order_by(Tarea.fecha_programada).all()
-    return render_template('ver_lead.html', lead=lead, visitas=visitas, tareas=tareas, usuario=u, ahora=datetime.now())
+    return render_template('ver_lead.html', lead=lead, visitas=visitas, tareas=tareas, usuario=u, ahora=ahora_argentina())
 
 @app.route('/leads/<int:id>/editar', methods=['GET', 'POST'])
 @login_requerido
@@ -262,7 +274,7 @@ def editar_lead(id):
         lead.estado      = request.form['estado']
         lead.temperatura = request.form['temperatura']
         lead.notas       = request.form.get('notas', '')
-        lead.ultimo_contacto = datetime.now()
+        lead.ultimo_contacto = ahora_argentina()
         db.session.commit()
         flash('Lead actualizado', 'success')
         return redirect(url_for('ver_lead', id=lead.id))
@@ -295,7 +307,7 @@ def nueva_visita(lead_id):
     lead = Lead.query.filter_by(id=lead_id, usuario_id=u.id).first_or_404()
     if request.method == 'POST':
         fecha_hora = datetime.strptime(request.form['fecha_hora'], '%Y-%m-%dT%H:%M')
-        es_futura  = fecha_hora > datetime.now()
+        es_futura  = fecha_hora > ahora_argentina()
         visita = Visita(
             usuario_id = u.id,
             lead_id    = lead_id,
@@ -312,7 +324,7 @@ def nueva_visita(lead_id):
             flash('Visita registrada y seguimientos generados', 'success')
         else:
             flash(f'Visita agendada para el {fecha_hora.strftime("%d/%m/%Y a las %H:%M")}', 'success')
-        lead.ultimo_contacto = datetime.now()
+        lead.ultimo_contacto = ahora_argentina()
         db.session.commit()
         return redirect(url_for('ver_lead', id=lead_id))
     return render_template('form_visita.html', lead=lead, usuario=u)
@@ -328,7 +340,7 @@ def confirmar_visita(id):
         visita.realizada = True
         visita.resultado = request.form.get('resultado', '')
         generar_tareas(visita, visita.lead, u)
-        visita.lead.ultimo_contacto = datetime.now()
+        visita.lead.ultimo_contacto = ahora_argentina()
         db.session.commit()
         flash('Visita confirmada. Seguimientos generados.', 'success')
     elif accion == 'reagendar':
@@ -379,8 +391,8 @@ def completar_tarea(id):
     u     = usuario_actual()
     tarea = Tarea.query.filter_by(id=id, usuario_id=u.id).first_or_404()
     tarea.estado        = 'completado'
-    tarea.completado_en = datetime.now()
-    tarea.lead.ultimo_contacto = datetime.now()
+    tarea.completado_en = ahora_argentina()
+    tarea.lead.ultimo_contacto = ahora_argentina()
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -551,7 +563,7 @@ def nuevo_propietario():
             nombre          = request.form['nombre'],
             telefono        = request.form['telefono'],
             notas           = request.form.get('notas', ''),
-            ultimo_contacto = datetime.now()
+            ultimo_contacto = ahora_argentina()
         )
         db.session.add(prop)
         db.session.flush()
@@ -586,7 +598,7 @@ def ver_propietario(id):
         db.session.add(plantilla_reporte)
         db.session.commit()
     return render_template('ver_propietario.html', propietario=prop, usuario=u,
-                           ahora=datetime.now(), plantilla_reporte_texto=plantilla_reporte.texto)
+                           ahora=ahora_argentina(), plantilla_reporte_texto=plantilla_reporte.texto)
 
 @app.route('/captaciones/<int:id>/editar', methods=['GET', 'POST'])
 @login_requerido
@@ -597,7 +609,7 @@ def editar_propietario(id):
         prop.nombre          = request.form['nombre']
         prop.telefono        = request.form['telefono']
         prop.notas           = request.form.get('notas', '')
-        prop.ultimo_contacto = datetime.now()
+        prop.ultimo_contacto = ahora_argentina()
         db.session.commit()
         flash('Propietario actualizado', 'success')
         return redirect(url_for('ver_propietario', id=prop.id))
@@ -647,7 +659,7 @@ def actualizar_visitas_propiedad(id):
     u         = usuario_actual()
     propiedad = PropiedadCaptada.query.filter_by(id=id, usuario_id=u.id).first_or_404()
     propiedad.visitas_count  = int(request.form.get('visitas_count', 0))
-    propiedad.ultimo_reporte = datetime.now()
+    propiedad.ultimo_reporte = ahora_argentina()
     db.session.commit()
     flash('Estadísticas actualizadas', 'success')
     return redirect(url_for('ver_propietario', id=propiedad.propietario_id))
