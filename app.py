@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask_migrate import Migrate
 from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, PropiedadCaptada
 from datetime import datetime, timedelta
 from functools import wraps
@@ -10,12 +11,6 @@ ZONA = pytz.timezone("America/Argentina/Buenos_Aires")
 def ahora_argentina():
     return datetime.now(pytz.utc).astimezone(ZONA).replace(tzinfo=None)
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
-from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, PropiedadCaptada
-from datetime import datetime, timedelta
-from functools import wraps
-import os
-
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///crm_saas.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -25,10 +20,10 @@ ADMIN_EMAIL = 'santiago.inmobiliaria.leads@gmail.com'
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin2024')
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all(checkfirst=True)
-    # Crear admin si no existe
     admin = Usuario.query.filter_by(email=ADMIN_EMAIL).first()
     if not admin:
         admin = Usuario(
@@ -42,7 +37,6 @@ with app.app_context():
         admin.set_password(ADMIN_PASSWORD)
         db.session.add(admin)
         db.session.commit()
-
 # ── Decoradores ────────────────────────────────────────────
 def login_requerido(f):
     @wraps(f)
