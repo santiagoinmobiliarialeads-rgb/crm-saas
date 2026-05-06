@@ -27,7 +27,7 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin2024')
 db.init_app(app)
 
 with app.app_context():
-    db.create_all()
+    db.create_all(checkfirst=True)
     # Crear admin si no existe
     admin = Usuario.query.filter_by(email=ADMIN_EMAIL).first()
     if not admin:
