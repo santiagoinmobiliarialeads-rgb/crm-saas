@@ -23,6 +23,9 @@ db.init_app(app)
 migrate = Migrate(app, db)
 
 with app.app_context():
+    inspector = db.inspect(db.engine)
+tablas_existentes = inspector.get_table_names()
+if not tablas_existentes:
     db.create_all()
     admin = Usuario.query.filter_by(email=ADMIN_EMAIL).first()
     if not admin:
