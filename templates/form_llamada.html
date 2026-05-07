@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Nueva llamada – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{{ url_for('llamadas') }}" style="color:var(--muted);font-size:13px;">← Volver</a>
+    <h2>Agendar llamada</h2>
+  </div>
+</div>
+
+<div class="card" style="max-width:600px;">
+  <form method="POST" id="form-llamada">
+
+    <!-- Tipo de contacto -->
+    <div class="form-group">
+      <label>¿A quién vas a llamar?</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="radio" name="tipo_contacto" value="lead" onchange="cambiarTipo('lead')" checked> Lead existente
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="radio" name="tipo_contacto" value="propietario" onchange="cambiarTipo('propietario')"> Propietario captado
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="radio" name="tipo_contacto" value="nuevo" onchange="cambiarTipo('nuevo')"> Número nuevo
+        </label>
+      </div>
+    </div>
+
+    <!-- Lead existente -->
+    <div id="seccion-lead" class="form-group">
+      <label>Seleccioná el lead</label>
+      <select name="lead_id" class="form-control" onchange="autocompletar(this, 'leads')">
+        <option value="">– Seleccioná –</option>
+        {% for lead in leads %}
+        <option value="{{ lead.id }}" data-nombre="{{ lead.nombre }}" data-tel="{{ lead.telefono }}">
+          {{ lead.nombre }} – {{ lead.telefono }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Propietario -->
+    <div id="seccion-propietario" class="form-group" style="display:none;">
+      <label>Seleccioná el propietario</label>
+      <select name="propietario_id" class="form-control" onchange="autocompletar(this, 'propietarios')">
+        <option value="">– Seleccioná –</option>
+        {% for p in propietarios %}
+        <option value="{{ p.id }}" data-nombre="{{ p.nombre }}" data-tel="{{ p.telefono }}">
+          {{ p.nombre }} – {{ p.telefono }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Número nuevo -->
+    <div id="seccion-nuevo" style="display:none;">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan García">
+        </div>
+        <div class="form-group">
+          <label>Teléfono *</label>
+          <input type="text" name="telefono" class="form-control" placeholder="Ej: +5493815222530">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Fecha y hora de la llamada *</label>
+      <input type="datetime-local" name="fecha_hora" class="form-control" required>
+    </div>
+
+    <div class="form-group">
+      <label>Notas previas</label>
+      <textarea name="notas" class="form-control" rows="2"
+        placeholder="Ej: Llamar para confirmar visita del jueves..."></textarea>
+    </div>
+
+    <div style="text-align:right;">
+      <button type="submit" class="btn btn-primary">Agendar llamada</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function cambiarTipo(tipo) {
+  document.getElementById('seccion-lead').style.display = tipo === 'lead' ? 'block' : 'none';
+  document.getElementById('seccion-propietario').style.display = tipo === 'propietario' ? 'block' : 'none';
+  document.getElementById('seccion-nuevo').style.display = tipo === 'nuevo' ? 'block' : 'none';
+}
+function autocompletar(select, tipo) {
+  const opt = select.options[select.selectedIndex];
+  // Solo info visual, el backend toma el id
+}
+</script>
+{% endblock %}

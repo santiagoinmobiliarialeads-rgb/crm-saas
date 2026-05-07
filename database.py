@@ -248,3 +248,57 @@ class PropiedadCaptada(db.Model):
     @property
     def estado_label(self):
         return self.ESTADOS.get(self.estado, self.estado)
+
+
+class Llamada(db.Model):
+    __tablename__ = 'llamadas'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    usuario_id     = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    lead_id        = db.Column(db.Integer, db.ForeignKey('leads.id'), nullable=True)
+    propietario_id = db.Column(db.Integer, db.ForeignKey('propietarios.id'), nullable=True)
+    nombre         = db.Column(db.String(120), nullable=False)
+    telefono       = db.Column(db.String(30), nullable=False)
+    fecha_hora     = db.Column(db.DateTime, nullable=False)
+    notas          = db.Column(db.Text, default='')
+    resultado      = db.Column(db.Text, default='')
+    estado         = db.Column(db.String(20), default='pendiente')
+    creado_en      = db.Column(db.DateTime, default=datetime.now)
+
+    ESTADOS = {
+        'pendiente':  'Pendiente',
+        'completada': 'Completada',
+        'no_atendio': 'No atendió',
+        'descartada': 'Descartada',
+    }
+
+    @property
+    def estado_label(self):
+        return self.ESTADOS.get(self.estado, self.estado)
+
+    @property
+    def minutos_para_llamada(self):
+        from datetime import datetime as dt
+        diff = (self.fecha_hora - dt.now()).total_seconds() / 60
+        return diff
+
+    @property
+    def urgencia(self):
+        mins = self.minutos_para_llamada
+        if mins < 0:
+            return 'vencida'
+        elif mins <= 10:
+            return 'ahora'
+        elif mins <= 60:
+            return 'pronto'
+        return 'proxima'
+
+    @property
+    def estado_label_tiempo(self):
+        mins = self.minutos_para_llamada
+        if mins < 0:
+            return 'Llamada pendiente de resultado'
+        elif mins <= 10:
+            return f'En {int(mins)} minutos'
+        else:
+            return self.fecha_hora.strftime('%d/%m/%Y a las %H:%M')

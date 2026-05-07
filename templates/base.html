@@ -24,6 +24,9 @@
     <a href="{{ url_for('kanban') }}" class="{{ 'active' if request.endpoint == 'kanban' }}">
       <span class="icon">📋</span> Kanban
     </a>
+    <a href="{{ url_for('llamadas') }}" class="{{ 'active' if request.endpoint in ['llamadas','nueva_llamada'] }}">
+      <span class="icon">📞</span> Llamadas
+    </a>
     <a href="{{ url_for('captaciones') }}" class="{{ 'active' if request.endpoint in ['captaciones','ver_propietario','nuevo_propietario','editar_propietario'] }}">
       <span class="icon">🏘️</span> Captaciones
     </a>

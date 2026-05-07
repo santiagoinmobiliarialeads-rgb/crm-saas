@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Llamadas – InmoCRM{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Agenda de llamadas</h2>
+  <a href="{{ url_for('nueva_llamada') }}" class="btn btn-primary">+ Agendar llamada</a>
+</div>
+
+<!-- Pendientes -->
+{% if llamadas %}
+<div class="section-title"><span class="dot dot-red"></span> Llamadas pendientes</div>
+{% for llamada in llamadas %}
+<div class="card" style="margin-bottom:12px;border-left:3px solid
+  {% if llamada.urgencia == 'ahora' %}var(--red)
+  {% elif llamada.urgencia == 'vencida' %}var(--amber)
+  {% else %}#7F77DD{% endif %};">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">📞</span>
+        <strong style="font-size:15px;">{{ llamada.nombre }}</strong>
+        {% if llamada.urgencia == 'ahora' %}
+          <span class="badge badge-caliente">¡AHORA!</span>
+        {% elif llamada.urgencia == 'vencida' %}
+          <span class="badge" style="background:var(--amber-lt);color:var(--amber);">SIN RESULTADO</span>
+        {% endif %}
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">
+        📱 {{ llamada.telefono }}
+      </div>
+      <div style="font-size:13px;font-weight:500;margin-top:3px;
+        color:{% if llamada.urgencia == 'ahora' %}var(--red){% elif llamada.urgencia == 'vencida' %}var(--amber){% else %}var(--accent){% endif %}">
+        📅 {{ llamada.estado_label_tiempo }}
+      </div>
+      {% if llamada.notas %}
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">📝 {{ llamada.notas }}</div>
+      {% endif %}
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="tel:{{ llamada.telefono }}" class="btn btn-primary btn-sm">📞 Llamar</a>
+      <button onclick="toggleResultado({{ llamada.id }})" class="btn btn-ghost btn-sm">✔ Registrar resultado</button>
+      <form action="{{ url_for('eliminar_llamada', id=llamada.id) }}" method="POST"
+            onsubmit="return confirm('¿Eliminar esta llamada?')">
+        <button type="submit" class="btn btn-danger btn-sm">✕</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Panel resultado -->
+  <div id="resultado-{{ llamada.id }}" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <div class="form-group">
+      <label>Resultado de la llamada (opcional)</label>
+      <textarea id="resultado-texto-{{ llamada.id }}" class="form-control" rows="2"
+        placeholder="Ej: Muy interesado, quiere ver la propiedad..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <form action="{{ url_for('completar_llamada', id=llamada.id) }}" method="POST">
+        <input type="hidden" name="accion" value="completada">
+        <input type="hidden" name="resultado" id="r-completada-{{ llamada.id }}">
+        <button type="submit" onclick="copiarResultado('{{ llamada.id }}', 'r-completada-{{ llamada.id }}')"
+          class="btn btn-primary btn-sm">✔ Completada</button>
+      </form>
+      <form action="{{ url_for('completar_llamada', id=llamada.id) }}" method="POST">
+        <input type="hidden" name="accion" value="no_atendio">
+        <input type="hidden" name="resultado" value="No atendió">
+        <button type="submit" class="btn btn-ghost btn-sm">📵 No atendió</button>
+      </form>
+      <form action="{{ url_for('completar_llamada', id=llamada.id) }}" method="POST">
+        <input type="hidden" name="accion" value="convertir_lead">
+        <input type="hidden" name="resultado" id="r-lead-{{ llamada.id }}">
+        <button type="submit" onclick="copiarResultado('{{ llamada.id }}', 'r-lead-{{ llamada.id }}')"
+          class="btn btn-success btn-sm" style="background:var(--accent);color:#fff;border-color:var(--accent);">
+          👤 Convertir en lead
+        </button>
+      </form>
+      <form action="{{ url_for('completar_llamada', id=llamada.id) }}" method="POST"
+            onsubmit="return confirm('¿Descartar y eliminar este contacto?')">
+        <input type="hidden" name="accion" value="descartar">
+        <button type="submit" class="btn btn-danger btn-sm">🗑️ Descartar</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="empty-state"><div class="icon">📞</div>No tenés llamadas pendientes. <a href="{{ url_for('nueva_llamada') }}">Agendar una →</a></div>
+{% endfor %}
+
+<!-- Historial -->
+{% if historial %}
+<div class="section-title" style="margin-top:28px;"><span class="dot dot-green"></span> Historial reciente</div>
+{% for llamada in historial %}
+<div class="card" style="margin-bottom:8px;opacity:0.8;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div>
+      <strong>{{ llamada.nombre }}</strong>
+      <span class="badge badge-muted" style="margin-left:8px;">{{ llamada.estado_label }}</span>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+        {{ llamada.fecha_hora.strftime('%d/%m/%Y %H:%M') }}
+        {% if llamada.resultado %}· {{ llamada.resultado }}{% endif %}
+      </div>
+    </div>
+    <a href="tel:{{ llamada.telefono }}" class="btn btn-ghost btn-sm">📞 Llamar de nuevo</a>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+function toggleResultado(id) {
+  const el = document.getElementById('resultado-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function copiarResultado(id, targetId) {
+  const texto = document.getElementById('resultado-texto-' + id).value;
+  document.getElementById(targetId).value = texto;
+}
+</script>
+{% endblock %}

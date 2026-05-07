@@ -7,6 +7,48 @@
   <span style="font-size:13px;color:var(--muted);">{{ hoy.strftime('%A %d de %B') }}</span>
 </div>
 
+<!-- RECORDATORIO LLAMADAS 10 MIN -->
+{% if llamadas_recordatorio %}
+<div style="margin-bottom:16px;">
+  {% for llamada in llamadas_recordatorio %}
+  <div class="card" style="border-left:3px solid var(--red);margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px;">📞</span>
+          <strong style="font-size:15px;">Llamada en {{ llamada.minutos_para_llamada|int }} min – {{ llamada.nombre }}</strong>
+          <span class="badge badge-caliente">¡AHORA!</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;">
+          📱 {{ llamada.telefono }} · {{ llamada.fecha_hora.strftime('%H:%M hs') }}
+        </div>
+      </div>
+      <a href="tel:{{ llamada.telefono }}" class="btn btn-primary btn-sm">📞 Llamar ahora</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- LLAMADAS SIN RESULTADO -->
+{% if llamadas_sin_resultado %}
+<div class="section-title"><span class="dot" style="background:var(--amber)"></span> Llamadas sin resultado</div>
+{% for llamada in llamadas_sin_resultado %}
+<div class="card" style="margin-bottom:10px;border-left:3px solid var(--amber);">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <strong>{{ llamada.nombre }}</strong>
+      <span class="badge" style="background:var(--amber-lt);color:var(--amber);margin-left:8px;">Sin resultado</span>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+        📱 {{ llamada.telefono }} · {{ llamada.fecha_hora.strftime('%d/%m/%Y %H:%M') }}
+      </div>
+    </div>
+    <a href="{{ url_for('llamadas') }}" class="btn btn-ghost btn-sm">Ver llamadas</a>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
 <!-- RECORDATORIO 2HS ANTES -->
 {% if visitas_recordatorio %}
 <div style="margin-bottom:20px;">

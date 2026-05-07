@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_migrate import Migrate
-from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, PropiedadCaptada
+from database import db, Usuario, Lead, Visita, Tarea, Plantilla, Propietario, PropiedadCaptada, Llamada
 from datetime import datetime, timedelta
 from functools import wraps
 import os
@@ -158,6 +158,22 @@ def dashboard():
         Visita.fecha_hora <= dos_horas
     ).order_by(Visita.fecha_hora).all()
 
+    # Recordatorios llamadas 10 minutos antes
+    diez_minutos = ahora + timedelta(minutes=10)
+    llamadas_recordatorio = Llamada.query.filter(
+        Llamada.usuario_id == u.id,
+        Llamada.estado == 'pendiente',
+        Llamada.fecha_hora >= ahora,
+        Llamada.fecha_hora <= diez_minutos
+    ).order_by(Llamada.fecha_hora).all()
+
+    # Llamadas vencidas sin resultado
+    llamadas_sin_resultado = Llamada.query.filter(
+        Llamada.usuario_id == u.id,
+        Llamada.estado == 'pendiente',
+        Llamada.fecha_hora < ahora
+    ).order_by(Llamada.fecha_hora.desc()).all()
+
     plantilla_recordatorio = Plantilla.query.filter_by(usuario_id=u.id, tipo='recordatorio_visita').first()
     if not plantilla_recordatorio:
         d = Plantilla.DEFAULTS['recordatorio_visita']
@@ -187,6 +203,7 @@ def dashboard():
         visitas_agendadas=visitas_agendadas, visitas_sin_confirmar=visitas_sin_confirmar,
         visitas_recordatorio=visitas_recordatorio, plantilla_recordatorio=plantilla_recordatorio,
         es_lunes=es_lunes, propietarios_reporte=propietarios_reporte, plantilla_reporte=plantilla_reporte,
+        llamadas_recordatorio=llamadas_recordatorio, llamadas_sin_resultado=llamadas_sin_resultado,
         total_leads=total_leads, leads_calientes=leads_calientes,
         tareas_pendientes=tareas_pend, leads_cerrados=leads_cerrados, hoy=hoy, ahora=ahora
     )
@@ -535,3 +552,113 @@ def actualizar_visitas_propiedad(id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# ── Llamadas ───────────────────────────────────────────────
+@app.route('/llamadas')
+@login_requerido
+def llamadas():
+    u = usuario_actual()
+    llamadas = Llamada.query.filter_by(usuario_id=u.id).filter(
+        Llamada.estado == 'pendiente'
+    ).order_by(Llamada.fecha_hora).all()
+    historial = Llamada.query.filter_by(usuario_id=u.id).filter(
+        Llamada.estado != 'pendiente'
+    ).order_by(Llamada.fecha_hora.desc()).limit(20).all()
+    return render_template('llamadas.html', llamadas=llamadas, historial=historial, usuario=u)
+
+@app.route('/llamadas/nueva', methods=['GET', 'POST'])
+@login_requerido
+def nueva_llamada():
+    u = usuario_actual()
+    if request.method == 'POST':
+        fecha_hora = datetime.strptime(request.form['fecha_hora'], '%Y-%m-%dT%H:%M')
+        lead_id = request.form.get('lead_id') or None
+        prop_id = request.form.get('propietario_id') or None
+
+        # Si seleccionó un lead o propietario, tomar sus datos
+        nombre = request.form.get('nombre', '')
+        telefono = request.form.get('telefono', '')
+
+        if lead_id:
+            lead = Lead.query.filter_by(id=lead_id, usuario_id=u.id).first()
+            if lead:
+                nombre = lead.nombre
+                telefono = lead.telefono
+        elif prop_id:
+            prop = Propietario.query.filter_by(id=prop_id, usuario_id=u.id).first()
+            if prop:
+                nombre = prop.nombre
+                telefono = prop.telefono
+
+        llamada = Llamada(
+            usuario_id=u.id,
+            lead_id=int(lead_id) if lead_id else None,
+            propietario_id=int(prop_id) if prop_id else None,
+            nombre=nombre,
+            telefono=telefono,
+            fecha_hora=fecha_hora,
+            notas=request.form.get('notas', ''),
+            estado='pendiente'
+        )
+        db.session.add(llamada)
+        db.session.commit()
+        flash(f'Llamada agendada para el {fecha_hora.strftime("%d/%m/%Y a las %H:%M")}', 'success')
+        return redirect(url_for('llamadas'))
+
+    leads = Lead.query.filter_by(usuario_id=u.id).order_by(Lead.nombre).all()
+    propietarios = Propietario.query.filter_by(usuario_id=u.id).order_by(Propietario.nombre).all()
+    return render_template('form_llamada.html', usuario=u, leads=leads, propietarios=propietarios)
+
+@app.route('/llamadas/<int:id>/completar', methods=['POST'])
+@login_requerido
+def completar_llamada(id):
+    u = usuario_actual()
+    llamada = Llamada.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    accion = request.form.get('accion')
+
+    if accion == 'completada':
+        llamada.estado = 'completada'
+        llamada.resultado = request.form.get('resultado', '')
+        db.session.commit()
+        flash('Llamada registrada como completada', 'success')
+
+    elif accion == 'no_atendio':
+        llamada.estado = 'no_atendio'
+        llamada.resultado = request.form.get('resultado', '')
+        db.session.commit()
+        flash('Registrado: no atendió', 'info')
+
+    elif accion == 'convertir_lead':
+        # Crear lead con los datos de la llamada
+        nuevo = Lead(
+            usuario_id=u.id,
+            nombre=llamada.nombre,
+            telefono=llamada.telefono,
+            estado='nuevo',
+            temperatura='tibio',
+            notas=request.form.get('resultado', ''),
+            ultimo_contacto=ahora_argentina()
+        )
+        db.session.add(nuevo)
+        llamada.estado = 'completada'
+        llamada.resultado = 'Convertido en lead'
+        db.session.commit()
+        flash(f'{llamada.nombre} agregado como lead', 'success')
+        return redirect(url_for('ver_lead', id=nuevo.id))
+
+    elif accion == 'descartar':
+        db.session.delete(llamada)
+        db.session.commit()
+        flash('Llamada y contacto eliminados', 'info')
+
+    return redirect(request.referrer or url_for('llamadas'))
+
+@app.route('/llamadas/<int:id>/eliminar', methods=['POST'])
+@login_requerido
+def eliminar_llamada(id):
+    u = usuario_actual()
+    llamada = Llamada.query.filter_by(id=id, usuario_id=u.id).first_or_404()
+    db.session.delete(llamada)
+    db.session.commit()
+    flash('Llamada eliminada', 'info')
+    return redirect(url_for('llamadas'))
