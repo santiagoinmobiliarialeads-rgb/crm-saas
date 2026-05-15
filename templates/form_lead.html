@@ -8,7 +8,7 @@
 </div>
 
 <div class="card" style="max-width:600px;">
-  <form method="POST">
+  <form method="POST" id="form-lead">
     <div class="form-row">
       <div class="form-group">
         <label>Nombre completo *</label>
@@ -45,13 +45,16 @@
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
-      {% if lead %}
-      <form action="{{ url_for('eliminar_lead', id=lead.id) }}" method="POST" onsubmit="return confirm('¿Eliminar este lead?')">
-        <button type="submit" class="btn btn-danger">Eliminar</button>
-      </form>
-      {% endif %}
       <button type="submit" class="btn btn-primary">{{ 'Guardar cambios' if lead else 'Crear lead' }}</button>
     </div>
   </form>
+
+  {% if lead %}
+  <form action="{{ url_for('eliminar_lead', id=lead.id) }}" method="POST"
+        onsubmit="return confirm('¿Eliminar este lead?')"
+        style="text-align:right;margin-top:10px;">
+    <button type="submit" class="btn btn-danger">Eliminar lead</button>
+  </form>
+  {% endif %}
 </div>
 {% endblock %}
